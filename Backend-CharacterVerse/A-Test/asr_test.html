@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>七牛云ASR服务测试</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c 0%, #b21f1f 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 800px;
+            padding: 30px;
+            margin: 20px auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .card-title {
+            font-size: 1.3rem;
+            color: #3498db;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .card-title i {
+            margin-right: 10px;
+            font-size: 1.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        .btn {
+            background: linear-gradient(to right, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            background: linear-gradient(to right, #2980b9, #2573a7);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn i {
+            margin-right: 8px;
+        }
+        
+        .audio-player {
+            width: 100%;
+            margin-top: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .response {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        
+        .status {
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: 500;
+            display: none;
+        }
+        
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner {
+            border: 5px solid rgba(0, 0, 0, 0.1);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border-left-color: #3498db;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .audio-upload {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .audio-upload input {
+            flex: 1;
+        }
+        
+        .audio-upload button {
+            width: auto;
+            padding: 10px 15px;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .audio-upload {
+                flex-direction: column;
+            }
+        }
+    </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>七牛云ASR服务测试</h1>
+            <p class="subtitle">测试后端ASR接口：localhost:8080/api/asr</p>
+        </header>
+        
+        <div class="card">
+            <h2 class="card-title"><i class="fas fa-microphone-alt"></i> 语音识别配置</h2>
+            
+            <div class="form-group">
+                <label for="audio-url">音频URL：</label>
+                <input type="text" id="audio-url" placeholder="输入音频文件的公开URL">
+                <p style="margin-top: 8px; font-size: 0.9rem; color: #7f8c8d;">
+                    示例：https://dashscope.oss-cn-beijing.aliyuncs.com/audios/welcome.mp3
+                </p>
+            </div>
+            
+            <div class="form-group">
+                <label for="audio-format">音频格式：</label>
+                <select id="audio-format">
+                    <option value="mp3">MP3</option>
+                    <option value="wav">WAV</option>
+                    <option value="ogg">OGG</option>
+                    <option value="raw">RAW</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>或上传音频文件：</label>
+                <div class="audio-upload">
+                    <input type="file" id="audio-file" accept="audio/*">
+                    <button id="upload-btn" class="btn">
+                        <i class="fas fa-upload"></i> 上传
+                    </button>
+                </div>
+                <div id="upload-status" style="margin-top: 10px;"></div>
+            </div>
+            
+            <button id="recognize-btn" class="btn">
+                <i class="fas fa-play"></i> 识别语音
+            </button>
+        </div>
+        
+        <div class="card">
+            <h2 class="card-title"><i class="fas fa-text"></i> 识别结果</h2>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>正在识别语音，请稍候...</p>
+            </div>
+            
+            <div id="status" class="status"></div>
+            
+            <div class="form-group">
+                <label for="recognized-text">识别文本：</label>
+                <textarea id="recognized-text" readonly placeholder="识别结果将显示在这里"></textarea>
+            </div>
+            
+            <div class="response" id="response">
+                <!-- API响应将显示在这里 -->
+            </div>
+        </div>
+        
+        <footer>
+            <p>七牛云ASR服务测试页面 | 后端接口: /api/asr</p>
+            <p>© 2025 CharacterVerse-AI 项目</p>
+        </footer>
+    </div>
+
+    <script>
+        // DOM元素
+        const audioUrlInput = document.getElementById('audio-url');
+        const audioFormatSelect = document.getElementById('audio-format');
+        const audioFileInput = document.getElementById('audio-file');
+        const uploadBtn = document.getElementById('upload-btn');
+        const recognizeBtn = document.getElementById('recognize-btn');
+        const recognizedText = document.getElementById('recognized-text');
+        const responseDiv = document.getElementById('response');
+        const statusDiv = document.getElementById('status');
+        const loadingDiv = document.getElementById('loading');
+        const uploadStatus = document.getElementById('upload-status');
+        
+        // 上传按钮点击事件
+        uploadBtn.addEventListener('click', async () => {
+            const file = audioFileInput.files[0];
+            if (!file) {
+                uploadStatus.textContent = "请选择音频文件";
+                uploadStatus.style.color = "#c62828";
+                return;
+            }
+            
+            // 显示上传状态
+            uploadStatus.textContent = "上传中...";
+            uploadStatus.style.color = "#2c3e50";
+            uploadBtn.disabled = true;
+            
+            try {
+                // 创建FormData对象
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                // 调用文件上传API
+                const response = await fetch('http://localhost:8080/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || "上传失败");
+                }
+                
+                // 获取上传结果
+                const result = await response.json();
+                audioUrlInput.value = result.url;
+                
+                // 自动检测文件格式
+                const fileExt = file.name.split('.').pop().toLowerCase();
+                if (['mp3', 'wav', 'ogg', 'raw'].includes(fileExt)) {
+                    audioFormatSelect.value = fileExt;
+                }
+                
+                uploadStatus.textContent = "上传成功！";
+                uploadStatus.style.color = "#2e7d32";
+            } catch (error) {
+                uploadStatus.textContent = `上传失败: ${error.message}`;
+                uploadStatus.style.color = "#c62828";
+            } finally {
+                uploadBtn.disabled = false;
+            }
+        });
+        
+        // 识别按钮点击事件
+        recognizeBtn.addEventListener('click', async () => {
+            const audioUrl = audioUrlInput.value.trim();
+            const audioFormat = audioFormatSelect.value;
+            
+            if (!audioUrl) {
+                showStatus('请输入音频URL', 'error');
+                return;
+            }
+            
+            // 显示加载状态
+            loadingDiv.style.display = 'block';
+            recognizeBtn.disabled = true;
+            showStatus('正在调用ASR服务...', 'success');
+            responseDiv.style.display = 'none';
+            recognizedText.value = "";
+            
+            try {
+                // 调用ASR API
+                const result = await callASRAPI(audioUrl, audioFormat);
+                
+                // 显示识别结果
+                recognizedText.value = result.recognized_text;
+                showStatus('语音识别成功！', 'success');
+                
+                // 显示完整响应
+                responseDiv.textContent = JSON.stringify(result, null, 2);
+                responseDiv.style.display = 'block';
+            } catch (error) {
+                // 显示错误
+                console.error('ASR识别错误:', error);
+                showStatus(`ASR识别失败: ${error.message}`, 'error');
+                responseDiv.textContent = error.message;
+                responseDiv.style.display = 'block';
+            } finally {
+                // 隐藏加载状态
+                loadingDiv.style.display = 'none';
+                recognizeBtn.disabled = false;
+            }
+        });
+        
+        // 调用ASR API
+        async function callASRAPI(audioUrl, audioFormat) {
+            const apiUrl = 'http://localhost:8080/api/asr';
+            
+            // 请求体参数
+            const requestBody = {
+                audio_url: audioUrl,
+                format: audioFormat
+            };
+            
+            console.log("发送请求到后端:", JSON.stringify(requestBody, null, 2));
+            
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            });
+            
+            if (!response.ok) {
+                let errorMessage = `API返回错误状态码: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    errorMessage += `, 错误信息: ${JSON.stringify(errorData)}`;
+                } catch (e) {
+                    errorMessage += `, 无法解析错误响应`;
+                }
+                throw new Error(errorMessage);
+            }
+            
+            return await response.json();
+        }
+        
+        // 显示状态消息
+        function showStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+        }
+        
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            // 设置示例URL
+            audioUrlInput.value = "https://dashscope.oss-cn-beijing.aliyuncs.com/audios/welcome.mp3";
+        });
+    </script>
+</body>
+</html>

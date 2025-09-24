@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>七牛云TTS服务测试</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 800px;
+            padding: 30px;
+            margin: 20px auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .card-title {
+            font-size: 1.3rem;
+            color: #3498db;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .card-title i {
+            margin-right: 10px;
+            font-size: 1.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        .btn {
+            background: linear-gradient(to right, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            background: linear-gradient(to right, #2980b9, #2573a7);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn i {
+            margin-right: 8px;
+        }
+        
+        .audio-player {
+            width: 100%;
+            margin-top: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .response {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+            display: none;
+        }
+        
+        .status {
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: 500;
+            display: none;
+        }
+        
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner {
+            border: 5px solid rgba(0, 0, 0, 0.1);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border-left-color: #3498db;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .voice-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .voice-option {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        
+        .voice-option:hover {
+            border-color: #3498db;
+            background-color: #f0f8ff;
+        }
+        
+        .voice-option.selected {
+            border-color: #3498db;
+            background-color: #e3f2fd;
+            font-weight: bold;
+        }
+        
+        .voice-gender {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .slider-value {
+            min-width: 40px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 10px;
+            -webkit-appearance: none;
+            background: #e0e0e0;
+            border-radius: 5px;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+        }
+        
+        .preview-btn {
+            margin-top: 5px;
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            background: #f0f8ff;
+            border: 1px solid #3498db;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .voice-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>七牛云TTS服务测试</h1>
+            <p class="subtitle">测试七牛云TTS接口：https://openai.qiniu.com/v1/voice/tts</p>
+        </header>
+        
+        <div class="card">
+            <h2 class="card-title"><i class="fas fa-key"></i> API密钥</h2>
+            
+            <div class="form-group">
+                <label for="api-key">七牛云API密钥：</label>
+                <input type="password" id="api-key" placeholder="输入您的七牛云API密钥">
+            </div>
+            
+            <button id="load-voices-btn" class="btn">
+                <i class="fas fa-download"></i> 加载音色列表
+            </button>
+        </div>
+        
+        <div class="card">
+            <h2 class="card-title"><i class="fas fa-cogs"></i> 配置参数</h2>
+            
+            <div class="form-group">
+                <label for="text">要转换的文本：</label>
+                <textarea id="text" placeholder="输入要转换为语音的文本">你好，欢迎使用七牛云TTS服务！这是一个测试语音合成的功能。</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>选择声音类型：</label>
+                <div class="voice-grid" id="voice-grid">
+                    <div class="loading" id="voice-loading">
+                        <div class="spinner"></div>
+                        <p>正在加载音色列表...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="speed">语速调节：</label>
+                <div class="slider-container">
+                    <span>慢</span>
+                    <input type="range" id="speed" min="0.5" max="2.0" step="0.1" value="1.0">
+                    <span>快</span>
+                    <span class="slider-value" id="speed-value">1.0x</span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="encoding">音频格式：</label>
+                <select id="encoding">
+                    <option value="mp3">MP3</option>
+                    <option value="wav">WAV</option>
+                    <option value="pcm">PCM</option>
+                </select>
+            </div>
+            
+            <button id="generate-btn" class="btn" disabled>
+                <i class="fas fa-play"></i> 生成语音
+            </button>
+        </div>
+        
+        <div class="card">
+            <h2 class="card-title"><i class="fas fa-music"></i> 音频播放器</h2>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>正在生成语音，请稍候...</p>
+            </div>
+            
+            <div id="status" class="status"></div>
+            
+            <div class="audio-player">
+                <audio id="audio-player" controls style="width: 100%;">
+                    您的浏览器不支持音频播放
+                </audio>
+            </div>
+            
+            <div class="response" id="response">
+                <!-- API响应将显示在这里 -->
+            </div>
+        </div>
+        
+        <footer>
+            <p>七牛云TTS服务测试页面 | 接口: /v1/voice/tts</p>
+            <p>© 2025 CharacterVerse-AI 项目</p>
+        </footer>
+    </div>
+
+    <script>
+        // DOM元素
+        const apiKeyInput = document.getElementById('api-key');
+        const textInput = document.getElementById('text');
+        const speedInput = document.getElementById('speed');
+        const speedValue = document.getElementById('speed-value');
+        const encodingSelect = document.getElementById('encoding');
+        const generateBtn = document.getElementById('generate-btn');
+        const audioPlayer = document.getElementById('audio-player');
+        const responseDiv = document.getElementById('response');
+        const statusDiv = document.getElementById('status');
+        const loadingDiv = document.getElementById('loading');
+        const voiceGrid = document.getElementById('voice-grid');
+        const voiceLoading = document.getElementById('voice-loading');
+        const loadVoicesBtn = document.getElementById('load-voices-btn');
+        
+        // 当前选中的音色
+        let selectedVoice = null;
+        
+        // 语速调节
+        speedInput.addEventListener('input', () => {
+            speedValue.textContent = `${speedInput.value}x`;
+        });
+        
+        // 加载音色列表按钮点击事件
+        loadVoicesBtn.addEventListener('click', async () => {
+            const apiKey = apiKeyInput.value.trim();
+            
+            if (!apiKey) {
+                showStatus('请输入七牛云API密钥', 'error');
+                return;
+            }
+            
+            // 显示加载状态
+            voiceLoading.style.display = 'block';
+            loadVoicesBtn.disabled = true;
+            showStatus('正在加载音色列表...', 'success');
+            
+            try {
+                // 调用七牛云音色列表API
+                const voices = await callQiniuVoiceListAPI(apiKey);
+                
+                // 渲染音色列表
+                renderVoiceList(voices);
+                
+                showStatus('音色列表加载成功！', 'success');
+                generateBtn.disabled = false;
+            } catch (error) {
+                // 显示错误
+                console.error('加载音色列表错误:', error);
+                showStatus(`加载音色列表失败: ${error.message}`, 'error');
+            } finally {
+                // 隐藏加载状态
+                voiceLoading.style.display = 'none';
+                loadVoicesBtn.disabled = false;
+            }
+        });
+        
+        // 生成语音按钮点击事件
+        generateBtn.addEventListener('click', async () => {
+            const apiKey = apiKeyInput.value.trim();
+            const text = textInput.value.trim();
+            const speed = parseFloat(speedInput.value);
+            const encoding = encodingSelect.value;
+            
+            if (!apiKey) {
+                showStatus('请输入七牛云API密钥', 'error');
+                return;
+            }
+            
+            if (!text) {
+                showStatus('请输入要转换的文本', 'error');
+                return;
+            }
+            
+            if (!selectedVoice) {
+                showStatus('请选择音色', 'error');
+                return;
+            }
+            
+            // 显示加载状态
+            loadingDiv.style.display = 'block';
+            generateBtn.disabled = true;
+            showStatus('正在调用TTS服务...', 'success');
+            responseDiv.style.display = 'none';
+            audioPlayer.style.display = 'none';
+            
+            try {
+                // 调用七牛云TTS API
+                const audioData = await callQiniuTTSAPI(apiKey, text, selectedVoice, speed, encoding);
+                
+                // 设置音频播放器
+                const audioBlob = base64ToBlob(audioData, `audio/${encoding}`);
+                const audioUrl = URL.createObjectURL(audioBlob);
+                audioPlayer.src = audioUrl;
+                audioPlayer.style.display = 'block';
+                
+                // 尝试自动播放
+                setTimeout(() => {
+                    audioPlayer.play().catch(e => {
+                        console.log('自动播放被阻止，需要用户交互');
+                    });
+                }, 500);
+                
+                showStatus('语音生成成功！点击上方播放按钮收听', 'success');
+            } catch (error) {
+                // 显示错误
+                console.error('TTS生成错误:', error);
+                showStatus(`TTS生成失败: ${error.message}`, 'error');
+                responseDiv.textContent = error.message;
+                responseDiv.style.display = 'block';
+            } finally {
+                // 隐藏加载状态
+                loadingDiv.style.display = 'none';
+                generateBtn.disabled = false;
+            }
+        });
+        
+        // 调用七牛云音色列表API
+        async function callQiniuVoiceListAPI(apiKey) {
+            const apiUrl = 'https://openai.qiniu.com/v1/voice/list';
+            
+            const response = await fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`
+                }
+            });
+            
+            if (!response.ok) {
+                let errorMessage = `API返回错误状态码: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    errorMessage += `, 错误信息: ${JSON.stringify(errorData)}`;
+                } catch (e) {
+                    errorMessage += `, 无法解析错误响应`;
+                }
+                throw new Error(errorMessage);
+            }
+            
+            // 解析响应
+            const responseData = await response.json();
+            console.log("七牛云音色列表响应:", responseData);
+            
+            // 显示完整响应
+            responseDiv.textContent = JSON.stringify(responseData, null, 2);
+            responseDiv.style.display = 'block';
+            
+            return responseData;
+        }
+        
+        // 渲染音色列表
+        function renderVoiceList(voices) {
+            voiceGrid.innerHTML = '';
+            
+            voices.forEach(voice => {
+                const voiceOption = document.createElement('div');
+                voiceOption.className = 'voice-option';
+                voiceOption.dataset.voiceType = voice.voice_type;
+                
+                voiceOption.innerHTML = `
+                    <div>${voice.voice_name}</div>
+                    <div class="voice-gender">${voice.category}</div>
+                    ${voice.url ? `<button class="preview-btn" data-url="${voice.url}">试听</button>` : ''}
+                `;
+                
+                // 选择音色
+                voiceOption.addEventListener('click', () => {
+                    // 移除之前的选择
+                    document.querySelectorAll('.voice-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    
+                    // 设置新选择
+                    voiceOption.classList.add('selected');
+                    selectedVoice = voice.voice_type;
+                });
+                
+                // 试听按钮
+                const previewBtn = voiceOption.querySelector('.preview-btn');
+                if (previewBtn) {
+                    previewBtn.addEventListener('click', (e) => {
+                        e.stopPropagation(); // 阻止冒泡
+                        const previewUrl = previewBtn.dataset.url;
+                        const previewAudio = new Audio(previewUrl);
+                        previewAudio.play().catch(e => {
+                            console.log('试听播放失败:', e);
+                        });
+                    });
+                }
+                
+                voiceGrid.appendChild(voiceOption);
+            });
+        }
+        
+        // 调用七牛云TTS API
+        async function callQiniuTTSAPI(apiKey, text, voiceType, speed, encoding) {
+            const apiUrl = 'https://openai.qiniu.com/v1/voice/tts';
+            
+            // 请求体参数（根据七牛云文档格式）
+            const requestBody = {
+                audio: {
+                    voice_type: voiceType,
+                    encoding: encoding,
+                    speed_ratio: speed
+                },
+                request: {
+                    text: text
+                }
+            };
+            
+            console.log("发送请求到七牛云:", JSON.stringify(requestBody, null, 2));
+            
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify(requestBody)
+            });
+            
+            if (!response.ok) {
+                let errorMessage = `API返回错误状态码: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    errorMessage += `, 错误信息: ${JSON.stringify(errorData)}`;
+                } catch (e) {
+                    errorMessage += `, 无法解析错误响应`;
+                }
+                throw new Error(errorMessage);
+            }
+            
+            // 解析响应
+            const responseData = await response.json();
+            console.log("七牛云TTS响应:", responseData);
+            
+            // 显示完整响应
+            responseDiv.textContent = JSON.stringify(responseData, null, 2);
+            responseDiv.style.display = 'block';
+            
+            // 检查响应中是否有音频数据
+            if (responseData.data) {
+                return responseData.data;
+            }
+            
+            throw new Error('API响应中未找到音频数据');
+        }
+        
+        // 将base64转换为Blob
+        function base64ToBlob(base64Data, contentType = '') {
+            const byteCharacters = atob(base64Data);
+            const byteArrays = [];
+            
+            for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+                const slice = byteCharacters.slice(offset, offset + 512);
+                
+                const byteNumbers = new Array(slice.length);
+                for (let i = 0; i < slice.length; i++) {
+                    byteNumbers[i] = slice.charCodeAt(i);
+                }
+                
+                const byteArray = new Uint8Array(byteNumbers);
+                byteArrays.push(byteArray);
+            }
+            
+            return new Blob(byteArrays, { type: contentType });
+        }
+        
+        // 显示状态消息
+        function showStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+        }
+        
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            // 尝试从本地存储获取API密钥
+            const savedApiKey = localStorage.getItem('qiniu_api_key');
+            if (savedApiKey) {
+                apiKeyInput.value = savedApiKey;
+            }
+            
+            // 保存API密钥到本地存储
+            apiKeyInput.addEventListener('change', () => {
+                localStorage.setItem('qiniu_api_key', apiKeyInput.value);
+            });
+            
+            // 设置示例文本
+            textInput.value = "你好，欢迎使用七牛云TTS服务！这是一个测试语音合成的功能。";
+        });
+    </script>
+</body>
+</html>

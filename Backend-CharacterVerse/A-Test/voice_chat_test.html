@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>语音聊天测试</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 800px;
+            padding: 30px;
+            margin: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        h1 {
+            color: #1a2a6c;
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #1a2a6c, #b21f1f);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            padding: 25px;
+            margin-bottom: 25px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card-title {
+            color: #1a2a6c;
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .card-title i {
+            margin-right: 10px;
+            font-size: 1.6rem;
+            color: #fdbb2d;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #444;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            border-color: #1a2a6c;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(26, 42, 108, 0.2);
+        }
+        
+        .file-upload {
+            position: relative;
+            overflow: hidden;
+            margin: 20px 0;
+            text-align: center;
+            border: 2px dashed #1a2a6c;
+            border-radius: 8px;
+            padding: 30px;
+            background: #f8f9ff;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .file-upload:hover {
+            background: #eef0ff;
+            border-color: #b21f1f;
+        }
+        
+        .file-upload i {
+            font-size: 3rem;
+            color: #1a2a6c;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .file-upload p {
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        .file-upload input {
+            position: absolute;
+            top: 0;
+            right: 0;
+            margin: 0;
+            padding: 0;
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #1a2a6c, #b21f1f);
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.3s;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 10px 0;
+        }
+        
+        .btn i {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            background: linear-gradient(45deg, #b21f1f, #1a2a6c);
+        }
+        
+        .btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .status {
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: 500;
+            font-size: 1.1rem;
+        }
+        
+        .connected {
+            background: linear-gradient(45deg, #4CAF50, #2E7D32);
+            color: white;
+        }
+        
+        .disconnected {
+            background: linear-gradient(45deg, #f44336, #c62828);
+            color: white;
+        }
+        
+        .chat-container {
+            margin-top: 30px;
+        }
+        
+        .chat-messages {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .message {
+            padding: 16px;
+            margin-bottom: 16px;
+            border-radius: 12px;
+            max-width: 80%;
+            animation: fadeIn 0.4s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .user-message {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .ai-message {
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .voice-message {
+            background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+        }
+        
+        .message-header {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+            color: #1a2a6c;
+            display: flex;
+            align-items: center;
+        }
+        
+        .message-header i {
+            margin-right: 8px;
+        }
+        
+        .message-content {
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        
+        .audio-container {
+            margin-top: 12px;
+        }
+        
+        audio {
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            font-weight: 500;
+            font-size: 1.1rem;
+            text-align: center;
+            display: none;
+        }
+        
+        .success {
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            color: #2e7d32;
+            display: block;
+        }
+        
+        .error {
+            background: linear-gradient(135deg, #ffebee, #ffcdd2);
+            color: #c62828;
+            display: block;
+        }
+        
+        .audio-player-container {
+            margin-top: 25px;
+            text-align: center;
+            display: none;
+        }
+        
+        .audio-player-container h3 {
+            margin-bottom: 15px;
+            color: #1a2a6c;
+        }
+        
+        .file-info {
+            background: #f0f4ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 0.9rem;
+            color: #555;
+        }
+        
+        .icon {
+            display: inline-block;
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(26, 42, 108, 0.3);
+            border-radius: 50%;
+            border-top-color: #1a2a6c;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-microphone-alt"></i> 语音聊天测试</h1>
+            <p class="subtitle">上传语音文件进行聊天测试</p>
+        </header>
+        
+        <div class="card">
+            <h2 class="card-title"><i class="fas fa-plug"></i> 连接设置</h2>
+            <div class="form-group">
+                <label for="jwtToken"><i class="fas fa-key"></i> JWT令牌</label>
+                <input type="text" id="jwtToken" placeholder="输入您的JWT令牌">
+            </div>
+            
+            <div class="form-group">
+                <label for="roleId"><i class="fas fa-user-tag"></i> 角色ID</label>
+                <input type="number" id="roleId" placeholder="输入角色ID">
+            </div>
+            
+            <div class="form-group">
+                <label for="voiceFormat"><i class="fas fa-file-audio"></i> 语音格式</label>
+                <select id="voiceFormat">
+                    <option value="mp3">MP3</option>
+                    <option value="wav">WAV</option>
+                    <option value="ogg">OGG</option>
+                </select>
+            </div>
+            
+            <button id="connectBtn" class="btn">
+                <i class="fas fa-link"></i> 连接WebSocket
+            </button>
+            
+            <div id="status" class="status disconnected">
+                <i class="fas fa-plug"></i> 未连接
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2 class="card-title"><i class="fas fa-upload"></i> 上传语音</h2>
+            
+            <div class="file-upload">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>点击或拖放文件到此处上传</p>
+                <p class="file-info">支持格式: MP3, WAV, OGG | 最大文件大小: 10MB</p>
+                <input type="file" id="voiceFile" accept="audio/*">
+            </div>
+            
+            <button id="uploadBtn" class="btn" disabled>
+                <i class="fas fa-paper-plane"></i> 上传并发送语音
+            </button>
+            
+            <div id="uploadResult" class="result">
+                <!-- 上传结果将显示在这里 -->
+            </div>
+            
+            <div id="audioPlayerContainer" class="audio-player-container">
+                <h3><i class="fas fa-music"></i> 上传的语音</h3>
+                <audio id="audioPlayer" controls></audio>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2 class="card-title"><i class="fas fa-comments"></i> 聊天记录</h2>
+            <div id="chatMessages" class="chat-messages">
+                <div class="message system-message">
+                    <div class="message-header"><i class="fas fa-info-circle"></i> 系统提示</div>
+                    <div class="message-content">连接WebSocket后，上传语音文件开始测试</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM元素
+        const jwtTokenInput = document.getElementById('jwtToken');
+        const roleIdInput = document.getElementById('roleId');
+        const voiceFormatSelect = document.getElementById('voiceFormat');
+        const connectBtn = document.getElementById('connectBtn');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const voiceFileInput = document.getElementById('voiceFile');
+        const statusDiv = document.getElementById('status');
+        const chatMessagesDiv = document.getElementById('chatMessages');
+        const uploadResultDiv = document.getElementById('uploadResult');
+        const audioPlayerContainer = document.getElementById('audioPlayerContainer');
+        const audioPlayer = document.getElementById('audioPlayer');
+        
+        let socket = null;
+        
+        // 连接WebSocket
+        connectBtn.addEventListener('click', () => {
+            const jwtToken = jwtTokenInput.value.trim();
+            const roleId = roleIdInput.value.trim();
+            
+            if (!jwtToken) {
+                showResult('请输入JWT令牌', 'error');
+                return;
+            }
+            
+            if (!roleId) {
+                showResult('请输入角色ID', 'error');
+                return;
+            }
+            
+            // 创建WebSocket连接
+            try {
+                // 更新状态为连接中
+                statusDiv.innerHTML = '<div class="loading"></div> 连接中...';
+                statusDiv.className = 'status';
+                
+                socket = new WebSocket(`ws://localhost:8080/api/ws/chat?token=${jwtToken}`);
+                
+                // 连接成功
+                socket.onopen = () => {
+                    statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> 已连接';
+                    statusDiv.className = 'status connected';
+                    uploadBtn.disabled = false;
+                    connectBtn.disabled = true;
+                    addMessage('系统', 'WebSocket连接已建立', 'system');
+                };
+                
+                // 接收消息
+                socket.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        
+                        if (data.error) {
+                            addMessage('系统', `错误: ${data.error}`, 'error');
+                        } else {
+                            if (data.type === 'voice') {
+                                // 处理语音消息
+                                const audioUrl = `data:audio/${data.format};base64,${data.message}`;
+                                addVoiceMessage('AI', audioUrl, data.format);
+                            } else {
+                                // 处理文本消息
+                                addMessage('AI', data.message, 'ai');
+                            }
+                        }
+                    } catch (e) {
+                        addMessage('系统', `消息解析错误: ${e.message}`, 'error');
+                    }
+                };
+                
+                // 错误处理
+                socket.onerror = (error) => {
+                    addMessage('系统', `WebSocket错误: ${error.message || '未知错误'}`, 'error');
+                    statusDiv.innerHTML = '<i class="fas fa-times-circle"></i> 连接错误';
+                    statusDiv.className = 'status disconnected';
+                    uploadBtn.disabled = true;
+                    connectBtn.disabled = false;
+                };
+                
+                // 连接关闭
+                socket.onclose = () => {
+                    addMessage('系统', 'WebSocket连接已关闭', 'system');
+                    statusDiv.innerHTML = '<i class="fas fa-plug"></i> 未连接';
+                    statusDiv.className = 'status disconnected';
+                    uploadBtn.disabled = true;
+                    connectBtn.disabled = false;
+                };
+                
+            } catch (error) {
+                addMessage('系统', `连接失败: ${error.message}`, 'error');
+            }
+        });
+        
+        // 上传语音文件
+        uploadBtn.addEventListener('click', () => {
+            const file = voiceFileInput.files[0];
+            if (!file) {
+                showResult('请选择语音文件', 'error');
+                return;
+            }
+            
+            // 检查文件大小
+            if (file.size > 10 * 1024 * 1024) { // 10MB
+                showResult('文件大小超过10MB限制', 'error');
+                return;
+            }
+            
+            // 检查文件类型
+            const validTypes = ['audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mpeg'];
+            if (!validTypes.includes(file.type)) {
+                showResult('不支持的音频格式', 'error');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);  // 关键修改：使用 'file' 作为字段名
+            
+            // 显示上传中状态
+            uploadResultDiv.innerHTML = '<div class="loading"></div> 上传中...';
+            uploadResultDiv.className = 'result';
+            uploadResultDiv.style.display = 'block';
+            
+            fetch('https://ai.mcell.top/api/upload_voice', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === '文件上传成功') {
+                    uploadResultDiv.innerHTML = `<i class="fas fa-check-circle"></i> 上传成功! 文件名: ${data.filename}`;
+                    uploadResultDiv.className = 'result success';
+                    
+                    // 显示音频播放器
+                    audioPlayer.src = `https://ai.mcell.top${data.url}`;
+                    audioPlayerContainer.style.display = 'block';
+                    
+                    // 发送语音消息
+                    sendVoiceMessage(data.url);
+                } else {
+                    uploadResultDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> 上传失败: ${data.error || '未知错误'}`;
+                    uploadResultDiv.className = 'result error';
+                }
+            })
+            .catch(error => {
+                uploadResultDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> 请求失败: ${error.message}`;
+                uploadResultDiv.className = 'result error';
+            });
+        });
+
+        const BASE_URL = 'https://ai.mcell.top';
+        
+        // 发送语音消息
+        function sendVoiceMessage(voiceUrl) {
+            const roleId = roleIdInput.value.trim();
+            const format = voiceFormatSelect.value;
+            
+            // 确保URL是完整的公网URL
+            if (!voiceUrl.startsWith('http://') && !voiceUrl.startsWith('https://')) {
+                voiceUrl = BASE_URL + voiceUrl;
+            }
+            
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                showResult('WebSocket未连接', 'error');
+                return;
+            }
+            
+            // 发送语音消息
+            try {
+                const messageData = {
+                    role_id: parseInt(roleId),
+                    message: voiceUrl,
+                    type: 'voice',
+                    format: format
+                };
+                
+                socket.send(JSON.stringify(messageData));
+                
+                // 在界面上显示用户语音消息
+                addVoiceMessage('用户', voiceUrl, format);
+                
+            } catch (error) {
+                addMessage('系统', `语音消息发送失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 添加消息到聊天界面
+        function addMessage(sender, content, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}-message`;
+            
+            const header = document.createElement('div');
+            header.className = 'message-header';
+            header.innerHTML = `<i class="fas fa-user"></i> ${sender}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = content;
+            
+            messageDiv.appendChild(header);
+            messageDiv.appendChild(contentDiv);
+            
+            chatMessagesDiv.appendChild(messageDiv);
+            
+            // 滚动到底部
+            chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+        }
+        
+        // 添加语音消息到聊天界面
+        function addVoiceMessage(sender, audioUrl, format) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message voice-message`;
+            
+            const header = document.createElement('div');
+            header.className = 'message-header';
+            header.innerHTML = `<i class="fas fa-microphone-alt"></i> ${sender}的语音消息`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = '点击下方播放按钮收听语音消息';
+            
+            const audioContainer = document.createElement('div');
+            audioContainer.className = 'audio-container';
+            
+            const audioElem = document.createElement('audio');
+            audioElem.controls = true;
+            audioElem.src = audioUrl;
+            
+            audioContainer.appendChild(audioElem);
+            
+            messageDiv.appendChild(header);
+            messageDiv.appendChild(contentDiv);
+            messageDiv.appendChild(audioContainer);
+            
+            chatMessagesDiv.appendChild(messageDiv);
+            
+            // 滚动到底部
+            chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+        }
+        
+        // 显示结果消息
+        function showResult(message, type) {
+            uploadResultDiv.innerHTML = message;
+            uploadResultDiv.className = `result ${type}`;
+            uploadResultDiv.style.display = 'block';
+        }
+        
+        // 文件拖放功能
+        const dropArea = document.querySelector('.file-upload');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            dropArea.style.borderColor = '#b21f1f';
+            dropArea.style.backgroundColor = '#eef0ff';
+        }
+        
+        function unhighlight() {
+            dropArea.style.borderColor = '#1a2a6c';
+            dropArea.style.backgroundColor = '#f8f9ff';
+        }
+        
+        dropArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length) {
+                voiceFileInput.files = files;
+                
+                // 显示文件名
+                const fileInfo = document.querySelector('.file-info');
+                fileInfo.innerHTML = `<i class="fas fa-file-audio"></i> 已选择: ${files[0].name} (${formatFileSize(files[0].size)})`;
+            }
+        }
+        
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    </script>
+</body>
+</html>

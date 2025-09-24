@@ -254,7 +254,7 @@
             }
         });
         
-        // 发送消息
+        // 发送消息（修复版）
         sendBtn.addEventListener('click', () => {
             const roleId = roleIdInput.value.trim();
             const message = messageInput.value.trim();
@@ -269,11 +269,12 @@
                 return;
             }
             
-            // 发送消息
+            // 发送消息（添加type字段）
             try {
                 const messageData = {
                     role_id: parseInt(roleId),
-                    message: message
+                    message: message,
+                    type: "text" // 明确指定消息类型
                 };
                 
                 socket.send(JSON.stringify(messageData));
