@@ -12,7 +12,8 @@ import {
   Tag, 
   Empty,
   Divider,
-  Tooltip
+  Tooltip,
+  message
 } from 'antd'
 import { 
   SendOutlined, 
@@ -20,10 +21,13 @@ import {
   RobotOutlined,
   DeleteOutlined,
   HistoryOutlined,
-  MessageOutlined
+  MessageOutlined,
+  WifiOutlined,
+  DisconnectOutlined
 } from '@ant-design/icons'
 import PageContainer from '../../components/PageContainer'
 import StatCard from '../../components/StatCard'
+import StreamingChat from '../../utils/webSocket'
 import './Chat.css'
 
 const { TextArea } = Input
@@ -34,11 +38,13 @@ const Chat = () => {
   const [messages, setMessages] = useState([])
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const [streamingMessage, setStreamingMessage] = useState('')
   const messagesEndRef = useRef(null)
+  const streamingChatRef = useRef(null)
 
   const characters = [
     {
-      id: 1,
+      role_id: 1,
       name: '小助手',
       avatar: '🤖',
       personality: '友善、乐于助人',
@@ -47,7 +53,7 @@ const Chat = () => {
       online: true
     },
     {
-      id: 2,
+      role_id: 2,
       name: '创意伙伴',
       avatar: '🎨',
       personality: '创意、活泼',
@@ -56,7 +62,7 @@ const Chat = () => {
       online: true
     },
     {
-      id: 3,
+      role_id: 3,
       name: '智慧导师',
       avatar: '📚',
       personality: '博学、耐心',
@@ -72,7 +78,59 @@ const Chat = () => {
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages])
+  }, [messages, streamingMessage])
+
+  // 初始化WebSocket连接
+  useEffect(() => {
+    const initWebSocket = () => {
+      streamingChatRef.current = new StreamingChat({
+        onConnected: () => {
+          message.success('WebSocket连接成功')
+        },
+        onDisconnected: () => {
+          setIsTyping(false)
+          setStreamingMessage('')
+        },
+        onStreamStart: () => {
+          setIsTyping(true)
+          setStreamingMessage('')
+        },
+        onStreamChunk: (chunk, fullMessage) => {
+          setStreamingMessage(fullMessage)
+        },
+        onStreamEnd: (finalMessage, messageData) => {
+          setIsTyping(false)
+          setStreamingMessage('')
+          console.log('finalMessage:',messageData)
+          // 添加AI回复到消息列表
+          const aiMessage = {
+            type:'ai',
+            message: messageData.message,
+            timestamp: new Date().toLocaleTimeString(),
+            role_id: messageData.role_id
+          }
+          setMessages(prev => [...prev, aiMessage])
+        },
+        onError: (error) => {
+          setIsTyping(false)
+          setStreamingMessage('')
+          message.error(`连接错误: ${error.message}`)
+          console.error('WebSocket错误:', error)
+        }
+      })
+
+      streamingChatRef.current.connect()
+    }
+
+    initWebSocket()
+
+    // 清理函数
+    return () => {
+      if (streamingChatRef.current) {
+        streamingChatRef.current.disconnect()
+      }
+    }
+  }, [])
 
   const handleCharacterSelect = (character) => {
     setSelectedCharacter(character)
@@ -89,50 +147,31 @@ const Chat = () => {
   const handleSendMessage = () => {
     if (!inputValue.trim() || !selectedCharacter) return
 
+    // 检查WebSocket连接状态
+    if ( !streamingChatRef.current) {
+      message.error('WebSocket未连接，请稍后重试')
+      return
+    }
+
     const userMessage = {
-      id: Date.now(),
       type: 'user',
-      content: inputValue,
+      message: inputValue,
+      role_id: selectedCharacter.role_id,
       timestamp: new Date().toLocaleTimeString()
     }
 
+    // 添加用户消息到列表
     setMessages(prev => [...prev, userMessage])
-    setInputValue('')
-    setIsTyping(true)
-
-    // 模拟AI回复
-    setTimeout(() => {
-      const aiResponses = {
-        1: [ // 小助手
-          '我很乐意帮助您！有什么我可以为您做的吗？',
-          '这是一个很好的问题，让我来为您解答。',
-          '我理解您的需求，让我们一起来解决这个问题。'
-        ],
-        2: [ // 创意伙伴
-          '哇，这个想法很有趣！让我们一起发挥创意吧！',
-          '我有一个很棒的创意想法要和您分享！',
-          '让我们用不同的角度来看待这个问题，也许会有意想不到的收获！'
-        ],
-        3: [ // 智慧导师
-          '这是一个值得深入思考的问题，让我为您详细分析。',
-          '从学术角度来看，我们可以这样理解这个概念。',
-          '让我引用一些相关的理论来帮助您更好地理解。'
-        ]
-      }
-
-      const responses = aiResponses[selectedCharacter.id] || ['我明白了，让我想想如何回答您。']
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)]
-
-      const aiMessage = {
-        id: Date.now() + 1,
-        type: 'ai',
-        content: randomResponse,
-        timestamp: new Date().toLocaleTimeString()
-      }
-
-      setMessages(prev => [...prev, aiMessage])
-      setIsTyping(false)
-    }, 1000 + Math.random() * 2000)
+    
+    // 发送消息到WebSocket服务器
+    const success = streamingChatRef.current.sendMessage(inputValue, selectedCharacter.role_id)
+    
+    if (success) {
+      setInputValue('')
+      // 注意：不在这里设置isTyping，而是等待stream_start事件
+    } else {
+      message.error('发送消息失败')
+    }
   }
 
   const handleKeyPress = (e) => {
@@ -144,14 +183,7 @@ const Chat = () => {
 
   const clearMessages = () => {
     if (selectedCharacter) {
-      setMessages([
-        {
-          id: 1,
-          type: 'ai',
-          content: `你好！我是${selectedCharacter.name}，${selectedCharacter.description}`,
-          timestamp: new Date().toLocaleTimeString()
-        }
-      ])
+      setMessages([])
     }
   }
 
@@ -179,7 +211,7 @@ const Chat = () => {
                   dataSource={characters}
                   renderItem={(character) => (
                     <List.Item
-                      className={`character-list-item ${selectedCharacter?.id === character.id ? 'selected' : ''}`}
+                      className={`character-list-item ${selectedCharacter?.role_id === character.role_id ? 'selected' : ''}`}
                       onClick={() => handleCharacterSelect(character)}
                     >
                       <List.Item.Meta
@@ -235,9 +267,11 @@ const Chat = () => {
                         <Title level={5} style={{ margin: 0 }}>
                           {selectedCharacter.name}
                         </Title>
-                        <Text type="secondary" style={{ fontSize: '0.75rem' }}>
-                          {selectedCharacter.personality}
-                        </Text>
+                        <Space>
+                          <Text type="secondary" style={{ fontSize: '0.75rem' }}>
+                            {selectedCharacter.personality}
+                          </Text>
+                        </Space>
                       </div>
                     </Space>
                     <Space>
@@ -255,7 +289,6 @@ const Chat = () => {
                   <div className="messages-container">
                     {messages.map((message) => (
                       <div
-                        key={message.id}
                         style={{
                           display: 'flex',
                           justifyContent: message.type === 'user' ? 'flex-end' : 'flex-start',
@@ -282,7 +315,7 @@ const Chat = () => {
                           </div>
                           <div>
                             <div className={`message-bubble ${message.type}`}>
-                              {message.content}
+                              {message?.message}
                             </div>
                             <div className={`message-timestamp ${message.type}`}>
                               {message.timestamp}
@@ -292,15 +325,41 @@ const Chat = () => {
                       </div>
                     ))}
                     
+                    {/* 流式消息显示 */}
                     {isTyping && (
-                      <div className="typing-indicator">
-                        <div className="message-avatar ai">
-                          <Avatar size={32} style={{ fontSize: '0.875rem' }}>
-                            {selectedCharacter.avatar}
-                          </Avatar>
-                        </div>
-                        <div className="typing-bubble">
-                          <Text type="secondary">正在输入...</Text>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'flex-start',
+                          marginBottom: '1rem'
+                        }}
+                      >
+                        <div
+                          style={{
+                            maxWidth: '70%',
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '0.5rem'
+                          }}
+                        >
+                          <div className="message-avatar ai">
+                            <Avatar size={32} style={{ fontSize: '0.875rem' }}>
+                              {selectedCharacter.avatar}
+                            </Avatar>
+                          </div>
+                          <div>
+                            <div className="message-bubble ai streaming">
+                              {!streamingMessage && (
+                                <Text type="secondary">
+                                  <span className="typing-dots">正在思考</span>
+                                </Text>
+                              )}
+                              {streamingMessage && <span className="streaming-cursor">|</span>}
+                            </div>
+                            <div className="message-timestamp ai">
+                              {new Date().toLocaleTimeString()}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -322,10 +381,11 @@ const Chat = () => {
                         type="primary"
                         icon={<SendOutlined />}
                         onClick={handleSendMessage}
-                        disabled={!inputValue.trim()}
+                        disabled={!inputValue.trim() ||  isTyping}
+                        loading={isTyping}
                         style={{ height: 'auto' }}
                       >
-                        发送
+                        {isTyping ? '发送中' : '发送'}
                       </Button>
                     </Space.Compact>
                   </div>

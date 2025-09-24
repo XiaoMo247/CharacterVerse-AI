@@ -49,7 +49,7 @@
 .messages-container {
   flex: 1;
   padding: 1rem;
-  overflow: auto;
+  overflow: hidden;
   background: var(--bg-secondary);
 }
 
@@ -125,7 +125,7 @@
 
 .chat-input-area .ant-input:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px var(--primary-light);
+  /* box-shadow: 0 0 0 2px var(--primary-light); */
 }
 
 .chat-input-area .ant-input::placeholder {
@@ -308,4 +308,109 @@
 
 .messages-container::-webkit-scrollbar-thumb:hover {
   background: var(--border-hover);
+}
+
+/* 流式消息样式 */
+.message-bubble.streaming {
+  position: relative;
+  min-height: 1.5rem;
+  animation: streamingPulse 2s ease-in-out infinite;
+}
+
+.streaming-cursor {
+  display: inline-block;
+  margin-left: 2px;
+  animation: blink 1s infinite;
+  color: var(--primary-color);
+  font-weight: bold;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+@keyframes streamingPulse {
+  0%, 100% { 
+    box-shadow: var(--shadow-1); 
+  }
+  50% { 
+    box-shadow: var(--shadow-2); 
+    transform: translateY(-1px);
+  }
+}
+
+/* 思考动画 */
+.typing-dots::after {
+  content: '';
+  display: inline-block;
+  animation: dots 1.5s infinite;
+}
+
+@keyframes dots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+  100% { content: ''; }
+}
+
+/* 连接状态样式 */
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.connection-status.connected {
+  color: var(--success-color, #52c41a);
+}
+
+.connection-status.disconnected {
+  color: var(--error-color, #ff4d4f);
+}
+
+/* 流式消息淡入效果 */
+.message-bubble.streaming {
+  animation: streamingFadeIn 0.3s ease-in, streamingPulse 2s ease-in-out infinite 0.3s;
+}
+
+@keyframes streamingFadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(10px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+/* 发送按钮加载状态 */
+.ant-btn-loading .ant-btn-loading-icon {
+  margin-right: 8px;
+}
+
+/* WebSocket连接状态标签 */
+.chat-header .ant-tag {
+  font-size: 0.75rem;
+  border-radius: var(--border-radius-base);
+}
+
+/* 流式文本逐字显示效果 */
+.streaming-text {
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 暗色主题下的流式消息 */
+[data-theme="dark"] .message-bubble.streaming {
+  background: var(--bg-tertiary);
+  border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .streaming-cursor {
+  color: var(--primary-light);
 }

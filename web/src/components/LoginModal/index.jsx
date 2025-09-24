@@ -28,6 +28,7 @@ const LoginModal = ({ visible, onCancel }) => {
   const [activeTab, setActiveTab] = useState('login')
   const [loading, setLoading] = useState(false)
   const [githubLoading, setGithubLoading] = useState(false)
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false)
   const { login, register } = useAuthStore()
 
   const [loginForm] = Form.useForm()
@@ -37,17 +38,13 @@ const LoginModal = ({ visible, onCancel }) => {
   const handleLogin = async (values) => {
     setLoading(true)
     try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
+      // 更新全局状态
       const success = await login(values.username, values.password, values.remember)
       
       if (success) {
         message.success('登录成功！')
         onCancel()
         loginForm.resetFields()
-      } else {
-        message.error('用户名或密码错误')
       }
     } catch (error) {
       message.error('登录失败，请重试')
@@ -60,17 +57,13 @@ const LoginModal = ({ visible, onCancel }) => {
   const handleRegister = async (values) => {
     setLoading(true)
     try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      const success = await register(values.username, values.email, values.password)
+      // 更新全局状态
+      const success = await register(values.username, values.password)
       
       if (success) {
         message.success('注册成功！请登录')
         setActiveTab('login')
         registerForm.resetFields()
-      } else {
-        message.error('注册失败，用户名或邮箱已存在')
       }
     } catch (error) {
       message.error('注册失败，请重试')
@@ -202,21 +195,6 @@ const LoginModal = ({ visible, onCancel }) => {
           autoComplete="username"
         />
       </Form.Item>
-
-      <Form.Item
-        name="email"
-        rules={[
-          { required: true, message: '请输入邮箱' },
-          { type: 'email', message: '请输入有效的邮箱地址' }
-        ]}
-      >
-        <Input
-          prefix={<MailOutlined />}
-          placeholder="邮箱"
-          autoComplete="email"
-        />
-      </Form.Item>
-
       <Form.Item
         name="password"
         rules={[

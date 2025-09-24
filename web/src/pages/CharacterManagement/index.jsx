@@ -11,43 +11,13 @@ import {
 import { CharacterCard } from '../../components'
 import PageContainer from '../../components/PageContainer'
 import StatCard from '../../components/StatCard'
+import { addRole } from './server/characterService'
 
 const { TextArea } = Input
 const { Option } = Select
 
 const CharacterManagement = () => {
-  const [characters, setCharacters] = useState([
-    {
-      id: 1,
-      name: '小助手',
-      avatar: '🤖',
-      personality: '友善、乐于助人',
-      description: '一个贴心的AI助手，随时准备为您提供帮助和支持。',
-      tags: ['助手', '友善', '智能'],
-      chatCount: 15,
-      favorited: true
-    },
-    {
-      id: 2,
-      name: '创意伙伴',
-      avatar: '🎨',
-      personality: '创意、活泼',
-      description: '充满创意的伙伴，能够激发您的灵感，一起探索无限可能。',
-      tags: ['创意', '灵感', '艺术'],
-      chatCount: 8,
-      favorited: false
-    },
-    {
-      id: 3,
-      name: '智慧导师',
-      avatar: '📚',
-      personality: '博学、耐心',
-      description: '知识渊博的导师，耐心解答您的疑问，引导您学习成长。',
-      tags: ['博学', '导师', '教育'],
-      chatCount: 23,
-      favorited: true
-    }
-  ])
+  const [characters, setCharacters] = useState([])
 
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [editingCharacter, setEditingCharacter] = useState(null)
@@ -94,7 +64,7 @@ const CharacterManagement = () => {
     ))
   }
 
-  const handleSubmit = (values) => {
+  const handleSubmit =async (values) => {
     if (editingCharacter) {
       // 编辑现有角色
       setCharacters(characters.map(char => 
@@ -111,8 +81,14 @@ const CharacterManagement = () => {
         chatCount: 0,
         favorited: false
       }
-      setCharacters([...characters, newCharacter])
-      message.success('角色创建成功')
+      console.log(values,'values')
+      const res = await addRole(values)
+      if(res?.role_id){
+        setCharacters([...characters, newCharacter])
+        message.success('角色创建成功')
+      }else{
+        message.error('角色创建失败')
+      }
     }
     setIsModalVisible(false)
     form.resetFields()
@@ -156,14 +132,14 @@ const CharacterManagement = () => {
               icon={<HeartOutlined />}
             />
           </Col>
-          <Col xs={24} sm={8}>
+          {/* <Col xs={24} sm={8}>
             <StatCard
               title="总对话数"
               value={totalChats}
               suffix="次"
               icon={<StarOutlined />}
             />
-          </Col>
+          </Col> */}
         </Row>
       </div>
 
@@ -209,7 +185,7 @@ const CharacterManagement = () => {
               <Form.Item
                 name="avatar"
                 label="头像"
-                rules={[{ required: true, message: '请选择头像' }]}
+                rules={[{ required: false, message: '请选择头像' }]}
               >
                 <Select placeholder="选择头像">
                   {avatarOptions.map(avatar => (
@@ -225,7 +201,7 @@ const CharacterManagement = () => {
             </Col>
           </Row>
 
-          <Form.Item
+          {/* <Form.Item
             name="personality"
             label="性格特点"
             rules={[{ required: true, message: '请输入性格特点' }]}
@@ -241,7 +217,7 @@ const CharacterManagement = () => {
                 </Option>
               ))}
             </Select>
-          </Form.Item>
+          </Form.Item> */}
 
           <Form.Item
             name="description"
@@ -254,7 +230,7 @@ const CharacterManagement = () => {
             />
           </Form.Item>
 
-          <Form.Item
+          {/* <Form.Item
             name="tags"
             label="标签"
           >
@@ -263,7 +239,7 @@ const CharacterManagement = () => {
               placeholder="添加标签"
               style={{ width: '100%' }}
             />
-          </Form.Item>
+          </Form.Item> */}
 
           <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
             <Space>
