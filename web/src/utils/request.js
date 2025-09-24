@@ -15,10 +15,12 @@ request.interceptors.request.use(
     // 在发送请求之前做些什么
     
     // 添加 token
-    const stored = localStorage.getItem('auth')
-    const { token } = JSON.parse(stored)
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+    const stored = localStorage?.getItem('auth')
+    if(stored){
+        const { token } = JSON.parse(stored)
+        if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+        }
     }
     
     // 添加请求时间戳，防止缓存
