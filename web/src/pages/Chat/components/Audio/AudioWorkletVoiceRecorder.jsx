@@ -290,7 +290,6 @@ const AudioWorkletVoiceRecorder = ({
     // 2. 录音 → 暂停 → 取消 ✅  
     // 3. 直接取消（未开始录音） ✅
     
-    // 先检查并停止录音器（在重置状态之前）
     if (recorderRef.current && isRecording) {
       try {
         console.log('🛑 取消录音，停止录音器但不保存数据...')

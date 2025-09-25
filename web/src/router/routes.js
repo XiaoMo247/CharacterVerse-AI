@@ -69,7 +69,7 @@ export const routes = [
       requiresAuth: true,
       description: '应用设置和偏好'
     }
-  },
+  }
 ]
 
 // 获取导航路由
