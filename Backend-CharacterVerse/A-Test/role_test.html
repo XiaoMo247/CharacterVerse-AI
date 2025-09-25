@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>角色管理API测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .section { margin-bottom: 30px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        h2 { color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        label { display: block; margin: 10px 0 5px; }
+        input, textarea, button, select { width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box; }
+        button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+        .result { background-color: #f9f9f9; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-top: 10px; }
+        .error { color: #d9534f; }
+        .flex-container { display: flex; gap: 15px; }
+        .flex-container > div { flex: 1; }
+        .danger { background-color: #f44336; }
+        .danger:hover { background-color: #d32f2f; }
+        .warning { background-color: #ff9800; }
+        .warning:hover { background-color: #e68a00; }
+    </style>
+</head>
+<body>
+    <h1>角色管理API测试</h1>
+    
+    <!-- JWT输入区域 -->
+    <div class="section">
+        <h2>认证信息</h2>
+        <label for="jwtToken">JWT令牌:</label>
+        <textarea id="jwtToken" rows="3" placeholder="输入您的JWT令牌..."></textarea>
+        <div class="result" id="tokenStatus">未验证</div>
+    </div>
+    
+    <div class="flex-container">
+        <!-- 添加角色 -->
+        <div class="section">
+            <h2>添加角色</h2>
+            <label for="name">角色名称:</label>
+            <input type="text" id="name" placeholder="角色名称">
+            
+            <label for="description">角色描述:</label>
+            <textarea id="description" rows="2" placeholder="角色描述"></textarea>
+            
+            <label for="gender">性别:</label>
+            <select id="gender">
+                <option value="男">男</option>
+                <option value="女">女</option>
+                <option value="其他">其他</option>
+                <option value="未知">未知</option>
+            </select>
+            
+            <label for="age">年龄:</label>
+            <input type="number" id="age" min="0" max="120" value="25">
+            
+            <label for="voiceType">声音类型:</label>
+            <input type="text" id="voiceType" placeholder="声音类型">
+            
+            <button onclick="addRole()">添加角色</button>
+            <div class="result" id="addResult"></div>
+        </div>
+        
+        <!-- 获取角色列表 -->
+        <div class="section">
+            <h2>获取角色列表</h2>
+            <label for="page">页码:</label>
+            <input type="number" id="page" min="1" value="1">
+            
+            <label for="pageSize">每页数量:</label>
+            <input type="number" id="pageSize" min="1" max="100" value="10">
+            
+            <button onclick="listRoles()">获取角色列表</button>
+            <div class="result" id="listResult"></div>
+        </div>
+    </div>
+    
+    <div class="flex-container">
+        <!-- 按用户ID查询角色 -->
+        <div class="section">
+            <h2>按用户ID查询角色</h2>
+            <label for="userId">用户ID:</label>
+            <input type="number" id="userId" min="1" value="1">
+            
+            <label for="userPage">页码:</label>
+            <input type="number" id="userPage" min="1" value="1">
+            
+            <label for="userPageSize">每页数量:</label>
+            <input type="number" id="userPageSize" min="1" max="100" value="10">
+            
+            <button onclick="getRolesByUserId()">查询用户角色</button>
+            <div class="result" id="userResult"></div>
+        </div>
+        
+        <!-- 删除角色 -->
+        <div class="section">
+            <h2>删除角色</h2>
+            <label for="deleteRoleId">角色ID:</label>
+            <input type="number" id="deleteRoleId" min="1" placeholder="输入要删除的角色ID">
+            
+            <button class="danger" onclick="deleteRole()">删除角色</button>
+            <div class="result" id="deleteResult"></div>
+        </div>
+    </div>
+    
+    <!-- 更新角色 -->
+    <div class="section">
+        <h2>更新角色</h2>
+        <div class="flex-container">
+            <div>
+                <label for="updateRoleId">角色ID:</label>
+                <input type="number" id="updateRoleId" min="1" placeholder="输入要更新的角色ID">
+                
+                <label for="updateName">新角色名称:</label>
+                <input type="text" id="updateName" placeholder="新角色名称">
+                
+                <label for="updateDescription">新角色描述:</label>
+                <textarea id="updateDescription" rows="2" placeholder="新角色描述"></textarea>
+            </div>
+            <div>
+                <label for="updateGender">新性别:</label>
+                <select id="updateGender">
+                    <option value="">不修改</option>
+                    <option value="男">男</option>
+                    <option value="女">女</option>
+                    <option value="其他">其他</option>
+                    <option value="未知">未知</option>
+                </select>
+                
+                <label for="updateAge">新年龄:</label>
+                <input type="number" id="updateAge" min="0" max="120" placeholder="新年龄">
+                
+                <label for="updateVoiceType">新声音类型:</label>
+                <input type="text" id="updateVoiceType" placeholder="新声音类型">
+            </div>
+        </div>
+        
+        <button class="warning" onclick="updateRole()">更新角色</button>
+        <div class="result" id="updateResult"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080/api'; // 根据实际API地址修改
+        
+        // 添加角色
+        async function addRole() {
+            const jwt = document.getElementById('jwtToken').value;
+            if (!jwt) {
+                showError('addResult', '请先输入JWT令牌');
+                return;
+            }
+            
+            const roleData = {
+                name: document.getElementById('name').value,
+                description: document.getElementById('description').value,
+                gender: document.getElementById('gender').value,
+                age: parseInt(document.getElementById('age').value),
+                voice_type: document.getElementById('voiceType').value
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/role/add`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${jwt}`
+                    },
+                    body: JSON.stringify(roleData)
+                });
+                
+                const result = await response.json();
+                displayResult('addResult', result);
+            } catch (error) {
+                showError('addResult', `请求失败: ${error.message}`);
+            }
+        }
+        
+        // 获取角色列表
+        async function listRoles() {
+            const jwt = document.getElementById('jwtToken').value;
+            if (!jwt) {
+                showError('listResult', '请先输入JWT令牌');
+                return;
+            }
+            
+            const page = document.getElementById('page').value;
+            const pageSize = document.getElementById('pageSize').value;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/role/list?page=${page}&page_size=${pageSize}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${jwt}`
+                    }
+                });
+                
+                const result = await response.json();
+                displayResult('listResult', result);
+            } catch (error) {
+                showError('listResult', `请求失败: ${error.message}`);
+            }
+        }
+        
+        // 按用户ID查询角色
+        async function getRolesByUserId() {
+            const jwt = document.getElementById('jwtToken').value;
+            if (!jwt) {
+                showError('userResult', '请先输入JWT令牌');
+                return;
+            }
+            
+            const userId = document.getElementById('userId').value;
+            const page = document.getElementById('userPage').value;
+            const pageSize = document.getElementById('userPageSize').value;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/role/user/${userId}?page=${page}&page_size=${pageSize}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${jwt}`
+                    }
+                });
+                
+                const result = await response.json();
+                displayResult('userResult', result);
+            } catch (error) {
+                showError('userResult', `请求失败: ${error.message}`);
+            }
+        }
+        
+        // 删除角色
+        async function deleteRole() {
+            const jwt = document.getElementById('jwtToken').value;
+            if (!jwt) {
+                showError('deleteResult', '请先输入JWT令牌');
+                return;
+            }
+            
+            const roleId = document.getElementById('deleteRoleId').value;
+            if (!roleId) {
+                showError('deleteResult', '请输入角色ID');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/role/${roleId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${jwt}`
+                    }
+                });
+                
+                const result = await response.json();
+                displayResult('deleteResult', result);
+            } catch (error) {
+                showError('deleteResult', `请求失败: ${error.message}`);
+            }
+        }
+        
+        // 更新角色
+        async function updateRole() {
+            const jwt = document.getElementById('jwtToken').value;
+            if (!jwt) {
+                showError('updateResult', '请先输入JWT令牌');
+                return;
+            }
+            
+            const roleId = document.getElementById('updateRoleId').value;
+            if (!roleId) {
+                showError('updateResult', '请输入角色ID');
+                return;
+            }
+            
+            // 构建更新数据对象
+            const updateData = {};
+            if (document.getElementById('updateName').value) {
+                updateData.name = document.getElementById('updateName').value;
+            }
+            if (document.getElementById('updateDescription').value) {
+                updateData.description = document.getElementById('updateDescription').value;
+            }
+            if (document.getElementById('updateGender').value) {
+                updateData.gender = document.getElementById('updateGender').value;
+            }
+            if (document.getElementById('updateAge').value) {
+                updateData.age = parseInt(document.getElementById('updateAge').value);
+            }
+            if (document.getElementById('updateVoiceType').value) {
+                updateData.voice_type = document.getElementById('updateVoiceType').value;
+            }
+            
+            // 检查是否有更新字段
+            if (Object.keys(updateData).length === 0) {
+                showError('updateResult', '请至少提供一个更新字段');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/role/${roleId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${jwt}`
+                    },
+                    body: JSON.stringify(updateData)
+                });
+                
+                const result = await response.json();
+                displayResult('updateResult', result);
+            } catch (error) {
+                showError('updateResult', `请求失败: ${error.message}`);
+            }
+        }
+        
+        // 显示结果
+        function displayResult(elementId, data) {
+            const resultElement = document.getElementById(elementId);
+            if (data.code === 200) {
+                resultElement.innerHTML = `<pre>${JSON.stringify(data.data, null, 2)}</pre>`;
+                resultElement.className = 'result';
+            } else {
+                showError(elementId, `错误 ${data.code}: ${data.message}`);
+            }
+        }
+        
+        // 显示错误
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = message;
+            element.className = 'result error';
+        }
+    </script>
+</body>
+</html>

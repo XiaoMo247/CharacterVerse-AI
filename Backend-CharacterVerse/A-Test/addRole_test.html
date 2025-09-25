@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>角色创建测试工具 - 增强版</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background: #4b6cb7;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .content {
+            padding: 25px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            border-color: #4b6cb7;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(75, 108, 183, 0.2);
+        }
+        
+        textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        .btn {
+            display: block;
+            background: #4b6cb7;
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            background: #3a5a9c;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .response-area {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #4b6cb7;
+        }
+        
+        .response-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .response-content {
+            font-family: monospace;
+            white-space: pre-wrap;
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 12px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .success {
+            border-left-color: #27ae60;
+        }
+        
+        .error {
+            border-left-color: #e74c3c;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .info-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+        
+        .console-log {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f1f1f1;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .voice-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .voice-controls select {
+            flex: 1;
+        }
+        
+        .voice-controls button {
+            width: auto;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>角色创建测试工具</h1>
+            <div>增强版 - 支持声音类型获取</div>
+        </header>
+        
+        <div class="content">
+            <div class="info-box">
+                <div class="info-title">使用说明</div>
+                <p>1. 输入有效的JWT令牌</p>
+                <p>2. 点击"获取声音类型"加载可用声音</p>
+                <p>3. 填写角色信息</p>
+                <p>4. 点击"创建角色"按钮</p>
+                <p><strong>API地址: http://localhost:8080</strong></p>
+            </div>
+            
+            <div class="form-group">
+                <label for="jwtToken">JWT令牌:</label>
+                <input type="text" id="jwtToken" placeholder="输入Bearer令牌">
+            </div>
+            
+            <div class="form-group">
+                <label for="voiceType">声音类型:</label>
+                <div class="voice-controls">
+                    <select id="voiceType" disabled>
+                        <option value="">-- 请先获取声音类型 --</option>
+                    </select>
+                    <button id="fetchVoicesBtn" class="btn btn-secondary">获取声音类型</button>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="name">角色名称:</label>
+                <input type="text" id="name" placeholder="例如: AI助手">
+            </div>
+            
+            <div class="form-group">
+                <label for="description">角色描述:</label>
+                <textarea id="description" placeholder="例如: 一个乐于助人的AI助手"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="gender">性别:</label>
+                <select id="gender">
+                    <option value="">-- 选择性别 --</option>
+                    <option value="男">男</option>
+                    <option value="女">女</option>
+                    <option value="其他">其他</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="age">年龄:</label>
+                <input type="number" id="age" min="1" max="120" placeholder="例如: 25">
+            </div>
+            
+            <button id="submitBtn" class="btn">创建角色</button>
+            
+            <div class="response-area">
+                <div class="response-title">API响应:</div>
+                <div class="response-content" id="responseContent">等待请求...</div>
+            </div>
+            
+            <div class="console-log">
+                <div class="info-title">调试信息:</div>
+                <div id="logContent">控制台日志将显示在这里...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const jwtTokenInput = document.getElementById('jwtToken');
+            const voiceTypeSelect = document.getElementById('voiceType');
+            const fetchVoicesBtn = document.getElementById('fetchVoicesBtn');
+            const submitBtn = document.getElementById('submitBtn');
+            const responseContent = document.getElementById('responseContent');
+            const logContent = document.getElementById('logContent');
+            
+            // 添加日志函数
+            function addLog(message) {
+                const logEntry = document.createElement('div');
+                logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                logContent.appendChild(logEntry);
+                logContent.scrollTop = logContent.scrollHeight;
+            }
+            
+            // 获取声音类型
+            fetchVoicesBtn.addEventListener('click', function() {
+                const jwtToken = jwtTokenInput.value;
+                
+                if (!jwtToken) {
+                    addLog('错误: 请先提供JWT令牌');
+                    return;
+                }
+                
+                // 显示加载状态
+                fetchVoicesBtn.innerHTML = '<span class="loading"></span> 获取中...';
+                fetchVoicesBtn.disabled = true;
+                
+                addLog('开始获取声音类型...');
+                addLog(`请求地址: http://localhost:8080/api/voiceTypes`);
+                
+                // 发送API请求获取声音类型
+                fetch('http://localhost:8080/api/voiceTypes', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${jwtToken}`
+                    }
+                })
+                .then(response => {
+                    addLog(`收到响应: 状态码 ${response.status}`);
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.code !== 200) {
+                        throw new Error(data.message || '获取声音类型失败');
+                    }
+                    
+                    const voices = data.data || [];
+                    addLog(`成功获取 ${voices.length} 种声音类型`);
+                    
+                    // 清空下拉框
+                    voiceTypeSelect.innerHTML = '';
+                    
+                    // 添加默认选项
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = '-- 请选择声音类型 --';
+                    voiceTypeSelect.appendChild(defaultOption);
+                    
+                    // 添加声音类型选项
+                    voices.forEach(voice => {
+                        const option = document.createElement('option');
+                        option.value = voice.voice_type;
+                        option.textContent = `${voice.voice_name} (${voice.voice_type})`;
+                        voiceTypeSelect.appendChild(option);
+                    });
+                    
+                    // 启用下拉框
+                    voiceTypeSelect.disabled = false;
+                    
+                    // 重置按钮状态
+                    fetchVoicesBtn.innerHTML = '获取成功! 重新获取';
+                    fetchVoicesBtn.disabled = false;
+                })
+                .catch(error => {
+                    addLog(`获取声音类型失败: ${error.message}`);
+                    
+                    // 重置按钮状态
+                    fetchVoicesBtn.innerHTML = '获取声音类型';
+                    fetchVoicesBtn.disabled = false;
+                });
+            });
+            
+            // 创建角色
+            submitBtn.addEventListener('click', function() {
+                // 获取表单数据
+                const jwtToken = jwtTokenInput.value;
+                const name = document.getElementById('name').value;
+                const description = document.getElementById('description').value;
+                const gender = document.getElementById('gender').value;
+                const age = document.getElementById('age').value;
+                const voiceType = voiceTypeSelect.value;
+                
+                // 验证必填字段
+                if (!jwtToken) {
+                    responseContent.textContent = '错误: 请提供JWT令牌';
+                    responseContent.parentElement.classList.add('error');
+                    addLog('错误: 缺少JWT令牌');
+                    return;
+                }
+                
+                if (!name || !description || !gender || !age || !voiceType) {
+                    responseContent.textContent = '错误: 请填写所有必填字段';
+                    responseContent.parentElement.classList.add('error');
+                    addLog('错误: 缺少必填字段');
+                    return;
+                }
+                
+                // 构造请求数据
+                const requestData = {
+                    name: name,
+                    description: description,
+                    gender: gender,
+                    age: parseInt(age),
+                    voice_type: voiceType
+                };
+                
+                // 显示加载状态
+                responseContent.textContent = '发送请求中...';
+                responseContent.parentElement.classList.remove('success', 'error');
+                addLog('开始发送创建角色请求...');
+                addLog(`请求地址: http://localhost:8080/api/user/addRole`);
+                addLog(`请求方法: POST`);
+                addLog(`请求头: Authorization: Bearer ${jwtToken}`);
+                addLog(`请求体: ${JSON.stringify(requestData)}`);
+                
+                // 发送API请求
+                fetch('http://localhost:8080/api/user/addRole', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${jwtToken}`
+                    },
+                    body: JSON.stringify(requestData)
+                })
+                .then(response => {
+                    addLog(`收到响应: 状态码 ${response.status}`);
+                    return response.json();
+                })
+                .then(data => {
+                    // 格式化JSON响应
+                    const formattedResponse = JSON.stringify(data, null, 2);
+                    responseContent.textContent = formattedResponse;
+                    
+                    // 根据状态码显示不同样式
+                    if (data.code === 200) {
+                        responseContent.parentElement.classList.add('success');
+                        addLog('角色创建成功!');
+                    } else {
+                        responseContent.parentElement.classList.add('error');
+                        addLog(`角色创建失败: ${data.message}`);
+                    }
+                })
+                .catch(error => {
+                    responseContent.textContent = `请求失败: ${error.message}`;
+                    responseContent.parentElement.classList.add('error');
+                    addLog(`请求错误: ${error.message}`);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

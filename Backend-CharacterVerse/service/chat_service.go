@@ -139,12 +139,14 @@ func handleVoiceMessage(conn *websocket.Conn, userID uint, chatMsg ChatMessage) 
 	if err != nil {
 		log.Printf("获取角色信息失败: %v", err)
 		// 使用默认音色
-		role = &model.Role{Name: "默认角色"}
+		role = &model.Role{
+			Name:      "默认角色",
+			VoiceType: model.VoiceGentleTeacher, // 默认音色
+		}
 	}
 
-	// 根据角色名称选择音色
-	voiceType := selectVoiceType(role.Name)
-	audioData, err := GenerateQiniuTTS(aiResponse, voiceType, "mp3", 1.0)
+	// 使用角色的VoiceType作为音色
+	audioData, err := GenerateQiniuTTS(aiResponse, role.VoiceType, "mp3", 1.0)
 	if err != nil {
 		log.Printf("语音合成失败: %v", err)
 		// 如果TTS失败，回退到文本回复
@@ -169,19 +171,6 @@ func handleVoiceMessage(conn *websocket.Conn, userID uint, chatMsg ChatMessage) 
 	}
 }
 
-// 根据角色名称选择音色
-func selectVoiceType(roleName string) string {
-	// 简单的音色映射
-	switch {
-	case strings.Contains(roleName, "女") || strings.Contains(roleName, "女性"):
-		return "qiniu_zh_female_wwxkjx" // 女性音色
-	case strings.Contains(roleName, "男") || strings.Contains(roleName, "男性"):
-		return "qiniu_zh_male_wwxkjx" // 男性音色
-	default:
-		return "qiniu_zh_female_wwxkjx" // 默认女性音色
-	}
-}
-
 // 处理消息的核心逻辑
 func processMessage(userID, roleID uint, message string) (string, error) {
 	role, err := database.GetRoleByID(roleID)
@@ -202,7 +191,7 @@ func processMessage(userID, roleID uint, message string) (string, error) {
 	}
 
 	// 第一步：获取聊天回复
-	chatMessages := buildChatMessages(role.Description, history, message, existingSummary)
+	chatMessages := buildChatMessages(role, history, message, existingSummary)
 	userResponse, err := callQiniuLLM(chatMessages)
 	if err != nil {
 		return "", fmt.Errorf("调用大模型获取回复失败: %w", err)
@@ -214,7 +203,7 @@ func processMessage(userID, roleID uint, message string) (string, error) {
 	}
 
 	// 第二步：生成摘要
-	summaryMessages := buildSummaryMessages(role.Description, history, message, userResponse, existingSummary)
+	summaryMessages := buildSummaryMessages(role, history, message, userResponse, existingSummary)
 	newSummary, err := callQiniuLLM(summaryMessages)
 	if err != nil {
 		// 如果摘要生成失败，使用简单摘要
@@ -229,9 +218,13 @@ func processMessage(userID, roleID uint, message string) (string, error) {
 	return userResponse, nil
 }
 
-// 构建聊天请求的消息
-func buildChatMessages(roleDesc string, history []model.ChatHistory, currentMessage, existingSummary string) []Message {
-	systemMessage := "你正在扮演以下角色:\n" + roleDesc +
+// 构建聊天请求的消息（使用完整的角色信息）
+func buildChatMessages(role *model.Role, history []model.ChatHistory, currentMessage, existingSummary string) []Message {
+	// 构建完整的角色描述
+	roleDescription := fmt.Sprintf("角色名称: %s\n性别: %s\n年龄: %d\n角色描述: %s",
+		role.Name, role.Gender, role.Age, role.Description)
+
+	systemMessage := "你正在扮演以下角色:\n" + roleDescription +
 		"\n请保持角色设定，用角色的语气和风格回答用户问题。"
 
 	// 添加摘要上下文
@@ -254,8 +247,12 @@ func buildChatMessages(roleDesc string, history []model.ChatHistory, currentMess
 	return append(messages, Message{Role: "user", Content: currentMessage})
 }
 
-// 构建摘要请求的消息
-func buildSummaryMessages(roleDesc string, history []model.ChatHistory, userMessage, aiResponse, existingSummary string) []Message {
+// 构建摘要请求的消息（使用完整的角色信息）
+func buildSummaryMessages(role *model.Role, history []model.ChatHistory, userMessage, aiResponse, existingSummary string) []Message {
+	// 构建完整的角色描述
+	roleDescription := fmt.Sprintf("角色名称: %s\n性别: %s\n年龄: %d\n角色描述: %s",
+		role.Name, role.Gender, role.Age, role.Description)
+
 	// 构建完整的对话历史
 	var fullHistory strings.Builder
 	fullHistory.WriteString("以下是完整的对话历史:\n\n")
@@ -277,7 +274,7 @@ func buildSummaryMessages(roleDesc string, history []model.ChatHistory, userMess
 	}
 
 	// 系统消息
-	systemMessage := "你正在扮演以下角色:\n" + roleDesc +
+	systemMessage := "你正在扮演以下角色:\n" + roleDescription +
 		"\n请根据对话历史生成一个简短的摘要，要求:\n" +
 		"1. 保留关键信息\n" +
 		"2. 不超过200字\n" +
