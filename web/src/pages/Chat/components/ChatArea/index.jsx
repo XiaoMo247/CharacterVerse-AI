@@ -14,6 +14,7 @@ import {
   SendOutlined,
   DeleteOutlined,
 } from '@ant-design/icons'
+import VoiceBubble from '../VoiceBubble'
 
 const ChatArea = ({
   selectedCharacter,
@@ -28,8 +29,9 @@ const ChatArea = ({
       <>
       {/* 消息列表 */}
       <div className="messages-container">
-        {messages.map((message) => (
+        {messages.map((message,index) => (
           <div
+            key={index}
             style={{
               display: 'flex',
               justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
@@ -54,14 +56,27 @@ const ChatArea = ({
                   {message.role === 'ai' ? selectedCharacter.avatar : null}
                 </Avatar>
               </div>
-              <div>
-                <div className={`message-bubble ${message.role}`}>
-                  {message?.message}
+              {message.type === 'text' &&(
+                <div>
+                  <div className={`message-bubble ${message.role}`}>
+                    {message?.message}
+                  </div>
+                  <div className={`message-timestamp ${message.role}`}>
+                    {message.timestamp}
+                  </div>
                 </div>
-                <div className={`message-timestamp ${message.role}`}>
-                  {message.timestamp}
-                </div>
-              </div>
+              )}                
+              {/* 语音气泡 */}
+              {message.type === 'voice' && (
+                <VoiceBubble
+                  audioUrl={message?.message}
+                  duration={message?.duration}
+                  isOwn={message.role === 'ai' ? true : false}
+                  maxWidth={250}
+                  minWidth={100}
+                  />
+              )}
+
             </div>
           </div>
         ))}

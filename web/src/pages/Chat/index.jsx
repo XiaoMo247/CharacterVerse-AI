@@ -26,6 +26,7 @@ import './Chat.css'
 import  ChatArea  from './components/ChatArea'
 // import AdvancedMicrophoneRecorder from '../../utils/advanced-microphone'
 import AudioWorkletVoiceRecorder from './components/Audio/AudioWorkletVoiceRecorder'
+import VoiceBubbleDemo from './components/VoiceBubble/VoiceBubbleDemo'
 
 const { TextArea } = Input
 const { Text, Title } = Typography
@@ -109,6 +110,7 @@ const Chat = () => {
             message: messageData.message,
             timestamp: new Date().toLocaleTimeString(),
             role_id: messageData.role_id,
+            type: messageData.type
           }
           setLoading((pre) => {
             const newLoading = [...pre]
@@ -141,6 +143,17 @@ const Chat = () => {
   const handleCharacterSelect = (character) => {
     setSelectedCharacter(character)
     setMessages([])
+  }
+
+   const sendMessageToAI = async (message) => {
+      const success = await streamingChatRef.current.sendMessage(message)
+      if (success) {
+        setInputValue('')
+        setLoading([...loading, 1])
+        // 注意：不在这里设置isTyping，而是等待stream_start事件
+      } else {
+        message.error('发送消息失败')
+      }
   }
 
   const handleSendMessage = () => {
@@ -195,17 +208,20 @@ const Chat = () => {
   const handleRecordingComplete = (audioBlob, duration) => {
     if(audioBlob){
       const recording = {
-        id: Date.now(),
+        role_id: selectedCharacter.role_id,
         blob: audioBlob,
         duration: duration,
         timestamp: new Date(),
-        url: URL.createObjectURL(audioBlob),
-        type: audioBlob.type.includes('wav') ? 'AudioWorklet' : 'MediaRecorder'
+        message: URL.createObjectURL(audioBlob),
+        type: 'voice',
+        role: 'user',
+        format: 'wav'
       }
-      setRecordings(prev => [...prev, recording])
+      setMessages(prev => [...prev, recording])
+          // 发送消息到WebSocket服务器
+      sendMessageToAI(recording)
     }
   }
-
   return (
     <PageContainer
       title="智能聊天"
@@ -363,6 +379,7 @@ const Chat = () => {
           </Col>
         </Row>
       </div>
+      <VoiceBubbleDemo></VoiceBubbleDemo>
     </PageContainer>
   )
 }
