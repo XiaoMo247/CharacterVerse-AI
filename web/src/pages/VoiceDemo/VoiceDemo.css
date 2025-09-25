@@ -1,0 +1,556 @@
+/* 语音录音演示页面样式 - AudioWorklet vs 传统录音对比 */
+.voice-demo {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: var(--bg-primary, #ffffff);
+  color: var(--text-primary, #333333);
+  min-height: 100vh;
+}
+
+/* 页面头部 */
+.demo-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  padding: 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  color: white;
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.demo-header::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  animation: header-glow 6s ease-in-out infinite;
+}
+
+@keyframes header-glow {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(180deg); }
+}
+
+.demo-header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+  position: relative;
+  z-index: 2;
+}
+
+.demo-header p {
+  margin: 0;
+  font-size: 1.2rem;
+  opacity: 0.9;
+  position: relative;
+  z-index: 2;
+}
+
+/* 演示区域 */
+.demo-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+.demo-section {
+  background: var(--bg-secondary, #f8f9fa);
+  border-radius: 16px;
+  padding: 2rem;
+  border: 1px solid var(--border-secondary, #e8e8e8);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.demo-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* 特色演示区域 - AudioWorklet */
+.demo-section.featured {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 2px solid #0ea5e9;
+  box-shadow: 0 8px 32px rgba(14, 165, 233, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.demo-section.featured::before {
+  content: '🚀 推荐';
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  z-index: 10;
+  animation: featured-pulse 2s ease-in-out infinite;
+}
+
+@keyframes featured-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.demo-section.featured:hover {
+  box-shadow: 0 12px 40px rgba(14, 165, 233, 0.25);
+}
+
+.demo-section h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+}
+
+.demo-section.featured h2 {
+  color: #0369a1;
+}
+
+.demo-section > p {
+  margin: 0 0 2rem 0;
+  color: var(--text-secondary, #666);
+  font-size: 1rem;
+}
+
+/* 波形示例 */
+.waveform-examples {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.example-item {
+  background: var(--bg-primary, white);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid var(--border-tertiary, #f0f0f0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.example-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.example-item h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+  text-align: center;
+}
+
+/* 录音组件演示 */
+.recorder-demo {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 0;
+}
+
+/* 录音历史列表 */
+.recordings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary, #666);
+  font-style: italic;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+/* 录音项目 */
+.recording-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-primary, white);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  border: 1px solid var(--border-tertiary, #f0f0f0);
+  transition: all 0.2s ease;
+}
+
+.recording-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.recording-info {
+  flex: 1;
+}
+
+.recording-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.recording-icon {
+  font-size: 1.2rem;
+}
+
+.recording-type {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  background: var(--primary-color, #1890ff);
+  color: white;
+}
+
+.recording-type:contains("AudioWorklet") {
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+}
+
+.recording-time {
+  font-weight: 600;
+  color: var(--text-primary, #333);
+  margin-left: auto;
+}
+
+.recording-details {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary, #666);
+}
+
+/* 录音操作按钮 */
+.recording-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.recording-actions button {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg-tertiary, #f1f5f9);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.recording-actions button:hover {
+  transform: scale(1.1);
+}
+
+.play-btn:hover {
+  background: #c6f6d5;
+}
+
+.download-btn:hover {
+  background: #bee3f8;
+}
+
+.delete-btn:hover {
+  background: #fed7d7;
+}
+
+/* 清空按钮 */
+.clear-all-btn {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, #ff4d4f, #cf1322);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clear-all-btn:hover {
+  background: linear-gradient(135deg, #ff7875, #ff4d4f);
+  transform: translateY(-2px);
+}
+
+/* 使用说明 */
+.usage-guide {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.guide-item {
+  background: var(--bg-primary, white);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid var(--border-tertiary, #f0f0f0);
+  transition: all 0.3s ease;
+}
+
+.guide-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.guide-item.featured {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 2px solid #0ea5e9;
+  box-shadow: 0 4px 16px rgba(14, 165, 233, 0.1);
+}
+
+.guide-item.featured:hover {
+  box-shadow: 0 8px 25px rgba(14, 165, 233, 0.2);
+}
+
+.guide-item h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+}
+
+.guide-item.featured h3 {
+  color: #0369a1;
+}
+
+.guide-item ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  list-style-type: none;
+}
+
+.guide-item li {
+  position: relative;
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary, #666);
+  line-height: 1.5;
+}
+
+.guide-item li::before {
+  content: '✓';
+  position: absolute;
+  left: -1.5rem;
+  color: var(--primary-color, #1890ff);
+  font-weight: bold;
+}
+
+.guide-item.featured li::before {
+  color: #0ea5e9;
+}
+
+/* 暗色主题适配 */
+[data-theme="dark"] .voice-demo {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .demo-header {
+  background: linear-gradient(135deg, #4c51bf 0%, #553c9a 100%);
+  box-shadow: 0 8px 32px rgba(76, 81, 191, 0.3);
+}
+
+[data-theme="dark"] .demo-section {
+  background: var(--bg-secondary);
+  border-color: var(--border-secondary);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .demo-section.featured {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-color: #0ea5e9;
+}
+
+[data-theme="dark"] .example-item,
+[data-theme="dark"] .recording-item,
+[data-theme="dark"] .guide-item {
+  background: var(--bg-primary);
+  border-color: var(--border-tertiary);
+}
+
+[data-theme="dark"] .guide-item.featured {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+}
+
+[data-theme="dark"] .recording-item:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .voice-demo {
+    padding: 1rem;
+  }
+  
+  .demo-header {
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .demo-header h1 {
+    font-size: 2rem;
+  }
+  
+  .demo-header p {
+    font-size: 1rem;
+  }
+  
+  .demo-sections {
+    gap: 2rem;
+  }
+  
+  .demo-section {
+    padding: 1.5rem;
+  }
+  
+  .waveform-examples {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .usage-guide {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .recording-item {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .recording-header {
+    justify-content: space-between;
+  }
+  
+  .recording-actions {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .demo-header h1 {
+    font-size: 1.8rem;
+  }
+  
+  .demo-section {
+    padding: 1rem;
+  }
+  
+  .example-item,
+  .guide-item {
+    padding: 1rem;
+  }
+  
+  .demo-section.featured::before {
+    top: 0.5rem;
+    right: 0.5rem;
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+  }
+}
+
+/* 动画效果 */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.demo-section {
+  animation: slideIn 0.6s ease-out;
+}
+
+.recording-item {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* 特殊效果 - AudioWorklet 专用 */
+@keyframes audioworklet-glow {
+  0%, 100% {
+    box-shadow: 0 8px 32px rgba(14, 165, 233, 0.15);
+  }
+  50% {
+    box-shadow: 0 8px 32px rgba(14, 165, 233, 0.3);
+  }
+}
+
+.demo-section.featured {
+  animation: audioworklet-glow 4s ease-in-out infinite;
+}
+
+/* 无障碍访问 */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+  
+  .recording-actions button:hover,
+  .clear-all-btn:hover,
+  .example-item:hover,
+  .guide-item:hover {
+    transform: none;
+  }
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+  .demo-section,
+  .example-item,
+  .recording-item,
+  .guide-item {
+    border-width: 2px;
+  }
+  
+  .demo-section.featured {
+    border-width: 3px;
+  }
+  
+  .recording-actions button {
+    border: 2px solid var(--border-secondary, #e8e8e8);
+  }
+}
+
+/* 打印样式 */
+@media print {
+  .voice-demo {
+    background: white;
+    color: black;
+  }
+  
+  .demo-header {
+    background: #f0f0f0;
+    color: black;
+  }
+  
+  .recording-actions,
+  .clear-all-btn {
+    display: none;
+  }
+}

@@ -46,14 +46,6 @@ button {
   cursor: pointer;
   transition: border-color var(--animation-duration-base) var(--ease-out);
 }
-button:hover {
-  border-color: var(--primary-color);
-}
-button:focus,
-button:focus-visible {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 2px;
-}
 
 @media (prefers-color-scheme: light) {
   :root {

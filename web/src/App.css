@@ -79,11 +79,6 @@ button {
   border-radius: var(--border-radius-base);
 }
 
-button:focus {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 2px;
-}
-
 button:disabled {
   cursor: not-allowed;
   opacity: 0.6;

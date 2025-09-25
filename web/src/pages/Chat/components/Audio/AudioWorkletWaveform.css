@@ -1,0 +1,463 @@
+/* AudioWorklet 波形组件样式 - 从中间向两边跳动 */
+.audioworklet-waveform {
+  position: relative;
+  width: 100%;
+  height: calc(var(--max-height) + 60px);
+  background: var(--waveform-bg, #f0f0f0);
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+/* 录音状态的整体效果 */
+.audioworklet-waveform.recording {
+  background: linear-gradient(135deg, 
+    var(--waveform-bg, #f0f0f0) 0%, 
+    rgba(24, 144, 255, 0.05) 100%
+  );
+  box-shadow: 
+    inset 0 2px 8px rgba(0, 0, 0, 0.1),
+    0 0 20px rgba(24, 144, 255, 0.2);
+}
+
+/* 波形容器 - 水平排列，从中间向两边 */
+.waveform-container {
+  position: relative;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  gap: 3px;
+  height: var(--max-height, 40px);
+  width: 100%;
+  z-index: 2;
+}
+
+/* 单个波形条 - 从中间向两边排列，上下跳动 */
+.waveform-bar {
+  position: relative;
+  width: 4px;
+  background: var(--bar-color, var(--waveform-color, #1890ff));
+  border-radius: 2px;
+  transition: height 0.15s ease-out;
+  transform-origin: bottom;
+  min-height: 2px;
+  
+  /* 发光效果 */
+  box-shadow: 
+    0 0 6px rgba(24, 144, 255, 0.4),
+    inset 0 0 2px rgba(255, 255, 255, 0.3);
+}
+
+/* 录音时的波形条动画 */
+.waveform-bar.recording {
+  animation: vertical-pulse 0.8s ease-in-out infinite;
+}
+
+/* 垂直脉冲动画 - 上下跳动，从中间向两边传播 */
+@keyframes vertical-pulse {
+  0%, 100% {
+    height: 3px;
+    opacity: 0.5;
+    transform: scaleY(0.2);
+  }
+  25% {
+    height: calc(var(--amplitude, 0.5) * var(--max-height, 40px) * 0.7);
+    opacity: 0.8;
+    transform: scaleY(0.7);
+  }
+  50% {
+    height: calc(var(--amplitude, 0.5) * var(--max-height, 40px));
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  75% {
+    height: calc(var(--amplitude, 0.5) * var(--max-height, 40px) * 0.8);
+    opacity: 0.9;
+    transform: scaleY(0.8);
+  }
+}
+
+/* 波形条的渐变效果 */
+.waveform-bar::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  background: linear-gradient(
+    to top,
+    var(--bar-color, var(--waveform-color, #1890ff)) 0%,
+    rgba(24, 144, 255, 0.8) 50%,
+    rgba(24, 144, 255, 0.4) 100%
+  );
+  border-radius: 3px;
+  opacity: 0.3;
+  z-index: -1;
+}
+
+/* 中心指示器 */
+.center-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.4) 0%,
+    rgba(0, 0, 0, 0.2) 50%,
+    transparent 100%
+  );
+  transform: translateX(-50%);
+  z-index: 1;
+  border-radius: 1px;
+}
+
+/* 音量指示器 */
+.volume-indicator {
+  position: absolute;
+  bottom: 8px;
+  left: 20px;
+  right: 20px;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.volume-bar {
+  height: 100%;
+  background: var(--waveform-color, #1890ff);
+  border-radius: 2px;
+  transition: width 0.1s ease-out;
+  box-shadow: 0 0 4px rgba(24, 144, 255, 0.5);
+}
+
+/* 录音状态指示器 */
+.recording-status {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #666;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 4px 10px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+/* 录音指示点 */
+.recording-dot {
+  width: 8px;
+  height: 8px;
+  background: #ff4d4f;
+  border-radius: 50%;
+  animation: recording-pulse 1.5s infinite;
+}
+
+@keyframes recording-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.3);
+  }
+}
+
+/* 初始化状态指示器 */
+.init-status {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #999;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 4px 10px;
+  border-radius: 12px;
+  z-index: 10;
+}
+
+/* 波形传播动画 - 从中间向两边，上下跳动 */
+@keyframes wave-propagation {
+  0% {
+    transform: scaleY(0.1);
+    opacity: 0.2;
+  }
+  25% {
+    transform: scaleY(0.6);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  75% {
+    transform: scaleY(0.8);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scaleY(0.3);
+    opacity: 0.6;
+  }
+}
+
+/* 录音时的波形传播效果 */
+.audioworklet-waveform.recording .waveform-bar {
+  animation: 
+    wave-propagation 1s ease-in-out infinite,
+    vertical-pulse 0.6s ease-in-out infinite;
+}
+
+/* 从中间向两边的延迟效果 - 通过内联样式动态设置，这里提供备用方案 */
+.audioworklet-waveform.recording .waveform-bar:nth-child(1) { animation-delay: 0.45s; }
+.audioworklet-waveform.recording .waveform-bar:nth-child(2) { animation-delay: 0.4s; }
+.audioworklet-waveform.recording .waveform-bar:nth-child(3) { animation-delay: 0.35s; }
+.audioworklet-waveform.recording .waveform-bar:nth-child(4) { animation-delay: 0.3s; }
+.audioworklet-waveform.recording .waveform-bar:nth-child(5) { animation-delay: 0.25s; }
+.audioworklet-waveform.recording .waveform-bar:nth-child(6) { animation-delay: 0.2s; }
+.audioworklet-waveform.recording .waveform-bar:nth-child(7) { animation-delay: 0.15s; }
+.audioworklet-waveform.recording .waveform-bar:nth-child(8) { animation-delay: 0.1s; }
+.audioworklet-waveform.recording .waveform-bar:nth-child(9) { animation-delay: 0.05s; }
+.audioworklet-waveform.recording .waveform-bar:nth-child(10) { animation-delay: 0s; } /* 中心左 */
+.audioworklet-waveform.recording .waveform-bar:nth-child(11) { animation-delay: 0s; } /* 中心右 */
+.audioworklet-waveform.recording .waveform-bar:nth-child(12) { animation-delay: 0.05s; }
+.audioworklet-waveform.recording .waveform-bar:nth-child(13) { animation-delay: 0.1s; }
+.audioworklet-waveform.recording .waveform-bar:nth-child(14) { animation-delay: 0.15s; }
+.audioworklet-waveform.recording .waveform-bar:nth-child(15) { animation-delay: 0.2s; }
+.audioworklet-waveform.recording .waveform-bar:nth-child(16) { animation-delay: 0.25s; }
+.audioworklet-waveform.recording .waveform-bar:nth-child(17) { animation-delay: 0.3s; }
+.audioworklet-waveform.recording .waveform-bar:nth-child(18) { animation-delay: 0.35s; }
+.audioworklet-waveform.recording .waveform-bar:nth-child(19) { animation-delay: 0.4s; }
+.audioworklet-waveform.recording .waveform-bar:nth-child(20) { animation-delay: 0.45s; }
+
+/* 数据来源指示器 */
+.data-source {
+  position: absolute;
+  top: 5px;
+  right: 10px;
+  font-size: 0.75rem;
+  z-index: 10;
+}
+
+.real-data {
+  color: #52c41a;
+  font-weight: 500;
+}
+
+.simulated-data {
+  color: #faad14;
+  font-weight: 500;
+}
+
+.no-data {
+  color: var(--text-secondary, #999);
+}
+
+/* 不同尺寸变体 */
+.audioworklet-waveform.small {
+  --max-height: 25px;
+  height: 65px;
+  padding: 15px;
+  border-radius: 15px;
+}
+
+.audioworklet-waveform.small .waveform-bar {
+  height: 3px;
+}
+
+.audioworklet-waveform.large {
+  --max-height: 60px;
+  height: 140px;
+  padding: 25px;
+  border-radius: 25px;
+}
+
+.audioworklet-waveform.large .waveform-bar {
+  height: 6px;
+}
+
+/* 主题变体 */
+.audioworklet-waveform.theme-green {
+  --waveform-color: #52c41a;
+}
+
+.audioworklet-waveform.theme-orange {
+  --waveform-color: #fa8c16;
+}
+
+.audioworklet-waveform.theme-purple {
+  --waveform-color: #722ed1;
+}
+
+.audioworklet-waveform.theme-red {
+  --waveform-color: #ff4d4f;
+}
+
+/* 渐变主题 */
+.audioworklet-waveform.gradient .waveform-bar {
+  background: linear-gradient(
+    90deg,
+    #1890ff 0%,
+    #36cfc9 50%,
+    #73d13d 100%
+  );
+}
+
+.audioworklet-waveform.gradient .waveform-bar::before {
+  background: linear-gradient(
+    90deg,
+    rgba(24, 144, 255, 0.3) 0%,
+    rgba(54, 207, 201, 0.3) 50%,
+    rgba(115, 209, 61, 0.3) 100%
+  );
+}
+
+/* 暗色主题适配 */
+[data-theme="dark"] .audioworklet-waveform {
+  background: #2f2f2f;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .audioworklet-waveform.recording {
+  background: linear-gradient(135deg, 
+    #2f2f2f 0%, 
+    rgba(24, 144, 255, 0.1) 100%
+  );
+}
+
+[data-theme="dark"] .center-indicator {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 20%,
+    rgba(255, 255, 255, 0.4) 50%,
+    rgba(255, 255, 255, 0.2) 80%,
+    transparent 100%
+  );
+}
+
+[data-theme="dark"] .volume-indicator {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .recording-status,
+[data-theme="dark"] .init-status {
+  background: rgba(0, 0, 0, 0.8);
+  color: #ccc;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .audioworklet-waveform {
+    padding: 15px;
+    height: calc(var(--max-height) + 50px);
+  }
+  
+  .waveform-container {
+    gap: 1px;
+  }
+  
+  .waveform-bar {
+    height: 3px;
+  }
+  
+  .recording-status,
+  .init-status {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+}
+
+/* 高性能模式 - 减少动画 */
+@media (prefers-reduced-motion: reduce) {
+  .waveform-bar,
+  .recording-dot {
+    animation: none !important;
+  }
+  
+  .waveform-bar {
+    transition: width 0.05s linear;
+  }
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+  .audioworklet-waveform {
+    border: 2px solid var(--waveform-color, #1890ff);
+  }
+  
+  .waveform-bar {
+    box-shadow: none;
+    border: 1px solid var(--waveform-color, #1890ff);
+  }
+  
+  .center-indicator {
+    background: var(--waveform-color, #1890ff);
+    opacity: 0.5;
+  }
+}
+
+/* 特殊效果 - 呼吸灯 */
+.audioworklet-waveform.breathing {
+  animation: breathing-glow 3s ease-in-out infinite;
+}
+
+@keyframes breathing-glow {
+  0%, 100% {
+    box-shadow: 
+      inset 0 2px 8px rgba(0, 0, 0, 0.1),
+      0 0 10px rgba(24, 144, 255, 0.1);
+  }
+  50% {
+    box-shadow: 
+      inset 0 2px 8px rgba(0, 0, 0, 0.1),
+      0 0 30px rgba(24, 144, 255, 0.3);
+  }
+}
+
+/* 波纹效果 */
+.audioworklet-waveform.ripple::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: radial-gradient(
+    circle,
+    rgba(24, 144, 255, 0.2) 0%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: ripple-effect 2s ease-out infinite;
+  z-index: 0;
+}
+
+@keyframes ripple-effect {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 1;
+  }
+  100% {
+    width: 200px;
+    height: 200px;
+    opacity: 0;
+  }
+}

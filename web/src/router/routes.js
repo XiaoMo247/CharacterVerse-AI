@@ -6,6 +6,7 @@ const CharacterManagement = lazy(() => import('../pages/CharacterManagement'))
 const Chat = lazy(() => import('../pages/Chat'))
 const Profile = lazy(() => import('../pages/Profile'))
 const Settings = lazy(() => import('../pages/Settings'))
+const VoiceDemo = lazy(() => import('../pages/VoiceDemo'))
 
 // 路由配置表
 export const routes = [
@@ -67,6 +68,18 @@ export const routes = [
     meta: {
       requiresAuth: true,
       description: '应用设置和偏好'
+    }
+  },
+  {
+    path: '/voice-demo',
+    element: VoiceDemo,
+    name: 'voiceDemo',
+    title: '语音录音演示',
+    icon: '🎵',
+    showInNav: true,
+    meta: {
+      requiresAuth: false,
+      description: '类似QQ/微信的语音录音波形效果演示'
     }
   }
 ]

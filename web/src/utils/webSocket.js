@@ -41,7 +41,9 @@ class StreamingChat {
       };
 
       this.ws.onmessage = (event) => {
-        this.handleStreamMessage(event.data);
+        const message = JSON.parse(event?.data);
+        // this.handleStreamMessage(event.data);
+          this.onStreamEnd(this.currentMessage, message);
       };
 
       this.ws.onclose = () => {
@@ -105,7 +107,6 @@ class StreamingChat {
           
         default:
           console.log('收到未知消息类型:', message);
-          this.onStreamEnd(this.currentMessage, message);
       }
     } catch (error) {
       console.error('解析消息失败:', error);
@@ -114,17 +115,14 @@ class StreamingChat {
   }
 
   // 发送消息
-  sendMessage(message, role_id) {
+  sendMessage(messageData) {
     if (!this.isConnected || this.ws.readyState !== WebSocket.OPEN) {
       this.onError(new Error('WebSocket未连接'));
       return false;
     }
 
     try {
-      this.ws.send(JSON.stringify({
-        message,
-        role_id,
-      }));
+      this.ws.send(JSON.stringify(messageData));
       return true;
     } catch (error) {
       console.error('发送消息失败:', error);

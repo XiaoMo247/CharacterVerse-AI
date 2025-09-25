@@ -48,8 +48,10 @@
 /* 消息区域 */
 .messages-container {
   flex: 1;
+  max-height: 70vh;
+  box-sizing: content-box;
   padding: 1rem;
-  overflow: hidden;
+  overflow-y: auto;
   background: var(--bg-secondary);
 }
 

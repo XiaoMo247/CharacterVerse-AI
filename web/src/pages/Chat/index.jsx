@@ -17,18 +17,15 @@ import {
 } from 'antd'
 import { 
   SendOutlined, 
-  UserOutlined, 
-  RobotOutlined,
   DeleteOutlined,
-  HistoryOutlined,
-  MessageOutlined,
-  WifiOutlined,
-  DisconnectOutlined
+  AudioOutlined
 } from '@ant-design/icons'
 import PageContainer from '../../components/PageContainer'
-import StatCard from '../../components/StatCard'
 import StreamingChat from '../../utils/webSocket'
 import './Chat.css'
+import  ChatArea  from './components/ChatArea'
+// import AdvancedMicrophoneRecorder from '../../utils/advanced-microphone'
+import AudioWorkletVoiceRecorder from './components/Audio/AudioWorkletVoiceRecorder'
 
 const { TextArea } = Input
 const { Text, Title } = Typography
@@ -41,6 +38,10 @@ const Chat = () => {
   const [streamingMessage, setStreamingMessage] = useState('')
   const messagesEndRef = useRef(null)
   const streamingChatRef = useRef(null)
+  const [loading, setLoading] = useState([])
+  const [isRecording, setIsRecording] = useState(false)
+  const [Recordings, setRecordings] = useState([])
+  
 
   const characters = [
     {
@@ -80,41 +81,46 @@ const Chat = () => {
     scrollToBottom()
   }, [messages, streamingMessage])
 
+
   // 初始化WebSocket连接
   useEffect(() => {
     const initWebSocket = () => {
       streamingChatRef.current = new StreamingChat({
         onConnected: () => {
-          message.success('WebSocket连接成功')
+          // message.success('WebSocket连接成功')
         },
-        onDisconnected: () => {
-          setIsTyping(false)
-          setStreamingMessage('')
-        },
-        onStreamStart: () => {
-          setIsTyping(true)
-          setStreamingMessage('')
-        },
-        onStreamChunk: (chunk, fullMessage) => {
-          setStreamingMessage(fullMessage)
-        },
+        // onDisconnected: () => {
+        //   setIsTyping(false)
+        //   setStreamingMessage('')
+        // },
+        // onStreamStart: () => {
+        //   setIsTyping(true)
+        //   setStreamingMessage('')
+        // },
+        // onStreamChunk: (chunk, fullMessage) => {
+        //   setStreamingMessage(fullMessage)
+        // },
         onStreamEnd: (finalMessage, messageData) => {
           setIsTyping(false)
           setStreamingMessage('')
-          console.log('finalMessage:',messageData)
           // 添加AI回复到消息列表
           const aiMessage = {
-            type:'ai',
+            role:'ai',
             message: messageData.message,
             timestamp: new Date().toLocaleTimeString(),
-            role_id: messageData.role_id
+            role_id: messageData.role_id,
           }
+          setLoading((pre) => {
+            const newLoading = [...pre]
+            newLoading.pop()
+            return newLoading
+          })
           setMessages(prev => [...prev, aiMessage])
         },
         onError: (error) => {
           setIsTyping(false)
           setStreamingMessage('')
-          message.error(`连接错误: ${error.message}`)
+          // message.error(`连接错误: ${error.message}`)
           console.error('WebSocket错误:', error)
         }
       })
@@ -134,14 +140,7 @@ const Chat = () => {
 
   const handleCharacterSelect = (character) => {
     setSelectedCharacter(character)
-    setMessages([
-      {
-        id: 1,
-        type: 'ai',
-        content: `你好！我是${character.name}，${character.description}`,
-        timestamp: new Date().toLocaleTimeString()
-      }
-    ])
+    setMessages([])
   }
 
   const handleSendMessage = () => {
@@ -154,20 +153,22 @@ const Chat = () => {
     }
 
     const userMessage = {
-      type: 'user',
+      role: 'user',
       message: inputValue,
       role_id: selectedCharacter.role_id,
-      timestamp: new Date().toLocaleTimeString()
+      timestamp: new Date().toLocaleTimeString(),
+      type: 'text'
     }
 
     // 添加用户消息到列表
     setMessages(prev => [...prev, userMessage])
     
     // 发送消息到WebSocket服务器
-    const success = streamingChatRef.current.sendMessage(inputValue, selectedCharacter.role_id)
+    const success = streamingChatRef.current.sendMessage(userMessage)
     
     if (success) {
       setInputValue('')
+      setLoading([...loading, 1])
       // 注意：不在这里设置isTyping，而是等待stream_start事件
     } else {
       message.error('发送消息失败')
@@ -187,8 +188,23 @@ const Chat = () => {
     }
   }
 
-  const onlineCharacters = characters.filter(char => char.online)
-  const totalMessages = messages.length
+  // const onlineCharacters = characters.filter(char => char.online)
+  // const totalMessages = messages.length
+
+    // 处理录音完成
+  const handleRecordingComplete = (audioBlob, duration) => {
+    if(audioBlob){
+      const recording = {
+        id: Date.now(),
+        blob: audioBlob,
+        duration: duration,
+        timestamp: new Date(),
+        url: URL.createObjectURL(audioBlob),
+        type: audioBlob.type.includes('wav') ? 'AudioWorklet' : 'MediaRecorder'
+      }
+      setRecordings(prev => [...prev, recording])
+    }
+  }
 
   return (
     <PageContainer
@@ -198,7 +214,7 @@ const Chat = () => {
       <div className="chat-page">
         <Row gutter={[24, 24]} style={{ height: 'calc(100vh - 12rem)' }}>
           {/* 左侧角色列表 */}
-          <Col xs={24} lg={4}>
+          <Col xs={24} lg={6}>
             <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
 
               {/* 角色列表 */}
@@ -267,12 +283,12 @@ const Chat = () => {
                         <Title level={5} style={{ margin: 0 }}>
                           {selectedCharacter.name}
                         </Title>
-                        <Space>
-                          <Text type="secondary" style={{ fontSize: '0.75rem' }}>
-                            {selectedCharacter.personality}
-                          </Text>
-                        </Space>
                       </div>
+                    </Space>
+                    <Space>
+                        <Text type="secondary" style={{ fontSize: '0.75rem' }}>
+                          {loading.length > 0? '对方正在输入...' : ''}
+                        </Text>
                     </Space>
                     <Space>
                       <Tooltip title="清空聊天记录">
@@ -286,86 +302,25 @@ const Chat = () => {
                   </div>
 
                   {/* 消息列表 */}
-                  <div className="messages-container">
-                    {messages.map((message) => (
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: message.type === 'user' ? 'flex-end' : 'flex-start',
-                          marginBottom: '1rem'
-                        }}
-                      >
-                        <div
-                          style={{
-                            maxWidth: '70%',
-                            display: 'flex',
-                            flexDirection: message.type === 'user' ? 'row-reverse' : 'row',
-                            alignItems: 'flex-start',
-                            gap: '0.5rem'
-                          }}
-                        >
-                          <div className={`message-avatar ${message.type}`}>
-                            <Avatar 
-                              size={32}
-                              icon={message.type === 'user' ? <UserOutlined /> : <RobotOutlined />}
-                              style={{ fontSize: '0.875rem' }}
-                            >
-                              {message.type === 'ai' ? selectedCharacter.avatar : null}
-                            </Avatar>
-                          </div>
-                          <div>
-                            <div className={`message-bubble ${message.type}`}>
-                              {message?.message}
-                            </div>
-                            <div className={`message-timestamp ${message.type}`}>
-                              {message.timestamp}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    {/* 流式消息显示 */}
-                    {isTyping && (
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'flex-start',
-                          marginBottom: '1rem'
-                        }}
-                      >
-                        <div
-                          style={{
-                            maxWidth: '70%',
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: '0.5rem'
-                          }}
-                        >
-                          <div className="message-avatar ai">
-                            <Avatar size={32} style={{ fontSize: '0.875rem' }}>
-                              {selectedCharacter.avatar}
-                            </Avatar>
-                          </div>
-                          <div>
-                            <div className="message-bubble ai streaming">
-                              {!streamingMessage && (
-                                <Text type="secondary">
-                                  <span className="typing-dots">正在思考</span>
-                                </Text>
-                              )}
-                              {streamingMessage && <span className="streaming-cursor">|</span>}
-                            </div>
-                            <div className="message-timestamp ai">
-                              {new Date().toLocaleTimeString()}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    <div ref={messagesEndRef} />
-                  </div>
-
+                  <ChatArea 
+                    messages={messages}
+                    messagesEndRef={messagesEndRef}
+                    isTyping={isTyping}
+                    streamingMessage={streamingMessage}
+                    selectedCharacter={selectedCharacter}
+                    inputValue={inputValue}
+                    setInputValue={setInputValue}
+                    handleKeyPress={handleKeyPress}
+                    handleSendMessage={handleSendMessage}
+                  /> 
+                  <AudioWorkletVoiceRecorder
+                    onRecordingComplete={handleRecordingComplete}
+                    maxDuration={30}
+                    minDuration={1}
+                    visible={isRecording}
+                    onClose={()=>{setIsRecording(false)}}
+                    start={isRecording}
+                  />
                   {/* 输入区域 */}
                   <div className="chat-input-area">
                     <Space.Compact style={{ width: '100%' }}>
@@ -386,6 +341,12 @@ const Chat = () => {
                         style={{ height: 'auto' }}
                       >
                         {isTyping ? '发送中' : '发送'}
+                      </Button>
+                      <Button
+                        type="primary"
+                        icon={ <AudioOutlined />}
+                        onClick={() => setIsRecording(true)}
+                        >
                       </Button>
                     </Space.Compact>
                   </div>
