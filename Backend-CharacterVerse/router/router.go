@@ -3,7 +3,6 @@ package router
 import (
 	"Backend-CharacterVerse/api"
 	"Backend-CharacterVerse/middleware"
-	"Backend-CharacterVerse/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,15 +13,22 @@ func RouterInit(r *gin.Engine) {
 	{
 		public.POST("/user/register", api.Register)
 		public.POST("/user/login", api.Login)
-		public.POST("/tts", service.TTSHandler)
-		public.POST("/asr", service.ASRHandler)
+		public.GET("/voiceTypes", api.GetAllVoiceTypes)
 	}
 
 	// 需要认证的路由
 	auth := r.Group("/api")
 	auth.Use(middleware.JWTAuth())
 	{
-		auth.POST("/user/addRole", api.AddRole)
 		auth.GET("/ws/chat", api.ChatHandler)
+
+		roleGroup := auth.Group("/role")
+		{
+			roleGroup.POST("/add", api.AddRole)
+			roleGroup.GET("/list", api.ListRoles)
+			roleGroup.GET("/user/:user_id", api.GetRolesByUserID)
+			roleGroup.DELETE("/:role_id", api.DeleteRole)
+			roleGroup.PUT("/:role_id", api.UpdateRole)
+		}
 	}
 }
