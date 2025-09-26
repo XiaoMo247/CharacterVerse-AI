@@ -31,5 +31,11 @@ func RouterInit(r *gin.Engine) {
 			roleGroup.DELETE("/:role_id", api.DeleteRole)
 			roleGroup.PUT("/:role_id", api.UpdateRole)
 		}
+
+		historyGroup := auth.Group("/history")
+		{
+			historyGroup.GET("/user/:user_id", api.GetAllChatHistories)
+			historyGroup.GET("/user/:user_id/role/:role_id", api.GetChatHistoryByRole)
+		}
 	}
 }

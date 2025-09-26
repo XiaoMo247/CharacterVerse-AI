@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>语音通话功能测试 - 无缝播放版</title>
+    <title>语音通话功能测试 - 队列播放优化版</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -94,11 +94,31 @@
             width: 0%;
             transition: width 0.3s;
         }
+        .buffer-warning {
+            background-color: #ff9800;
+        }
+        .buffer-critical {
+            background-color: #f44336;
+        }
+        .latency-graph {
+            margin-top: 10px;
+            height: 60px;
+            border: 1px solid #ddd;
+            position: relative;
+            overflow: hidden;
+        }
+        .latency-bar {
+            position: absolute;
+            bottom: 0;
+            width: 4px;
+            background-color: #4CAF50;
+            transition: height 0.3s;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>语音通话功能测试 - 无缝播放版</h1>
+        <h1>语音通话功能测试 - 队列播放优化版</h1>
         
         <div class="input-group">
             <label for="jwt">JWT Token:</label>
@@ -130,6 +150,7 @@
             <div class="buffer-indicator">
                 <div class="buffer-fill" id="bufferFill"></div>
             </div>
+            <div class="latency-graph" id="latencyGraph"></div>
         </div>
         
         <div class="log">
@@ -144,16 +165,17 @@
         let audioChunks = [];
         let ws;
         let audioContext;
-        let audioSource;
         let lastNetworkLatency = 0;
         let bufferSizeHistory = [];
-        let audioBufferQueue = [];
         let isPlaying = false;
-        let currentAudioBuffer = null;
-        let playbackStartTime = 0;
-        let playbackPosition = 0;
-        let audioBufferDuration = 0;
-        let bufferFillElement = document.getElementById('bufferFill');
+        let latencyHistory = [];
+        let bufferCheckInterval;
+        let latencyGraphInterval;
+        
+        // 音频队列管理
+        let audioQueue = []; // 存储所有接收到的音频片段
+        let isFinalReceived = false; // 是否收到结束标记
+        let currentAudioSource = null; // 当前播放的音频源
         
         // DOM元素
         const jwtInput = document.getElementById('jwt');
@@ -165,6 +187,8 @@
         const logContent = document.getElementById('logContent');
         const statusElement = document.getElementById('status');
         const performanceInfo = document.getElementById('performanceInfo');
+        const bufferFillElement = document.getElementById('bufferFill');
+        const latencyGraphElement = document.getElementById('latencyGraph');
         
         // 添加日志
         function addLog(message) {
@@ -182,21 +206,62 @@
         
         // 更新性能信息
         function updatePerformanceInfo() {
-            const bufferSize = audioBufferQueue.length;
+            const bufferSize = audioQueue.length;
             const status = isPlaying ? '播放中' : '空闲';
             const avgBuffer = bufferSizeHistory.length > 0 ? 
                 Math.round(bufferSizeHistory.reduce((a, b) => a + b, 0) / bufferSizeHistory.length) : 0;
             
+            // 计算平均延迟
+            const avgLatency = latencyHistory.length > 0 ? 
+                Math.round(latencyHistory.reduce((a, b) => a + b, 0) / latencyHistory.length) : 0;
+            
             performanceInfo.textContent = 
-                `缓冲区: ${bufferSize} | 状态: ${status} | 平均缓冲: ${avgBuffer} | 延迟: ${lastNetworkLatency}ms`;
+                `缓冲区: ${bufferSize} | 状态: ${status} | 平均延迟: ${avgLatency}ms`;
             
             // 更新缓冲指示器
-            const bufferFill = Math.min(100, Math.max(0, bufferSize * 20));
+            const bufferFill = Math.min(100, Math.max(0, bufferSize * 10)); // 每个片段增加10%
+            
             bufferFillElement.style.width = `${bufferFill}%`;
+            bufferFillElement.className = 'buffer-fill';
+            
+            if (bufferSize < 3) {
+                bufferFillElement.classList.add('buffer-warning');
+            }
+            if (bufferSize < 1) {
+                bufferFillElement.classList.add('buffer-critical');
+            }
+        }
+        
+        // 更新延迟图表
+        function updateLatencyGraph() {
+            // 清除旧图表
+            latencyGraphElement.innerHTML = '';
+            
+            // 添加新的延迟条
+            latencyHistory.slice(-30).forEach((latency, index) => {
+                const bar = document.createElement('div');
+                bar.className = 'latency-bar';
+                bar.style.left = `${index * 5}px`;
+                
+                // 根据延迟值设置高度和颜色
+                const height = Math.min(60, Math.max(5, latency / 2));
+                bar.style.height = `${height}px`;
+                
+                if (latency > 300) {
+                    bar.style.backgroundColor = '#f44336'; // 红色表示高延迟
+                } else if (latency > 150) {
+                    bar.style.backgroundColor = '#ff9800'; // 橙色表示中等延迟
+                } else {
+                    bar.style.backgroundColor = '#4CAF50'; // 绿色表示低延迟
+                }
+                
+                bar.title = `延迟: ${latency}ms`;
+                latencyGraphElement.appendChild(bar);
+            });
         }
         
         // 连接WebSocket
-        connectBtn.addEventListener('click', () => {
+        connectBtn.addEventListener('click', async () => {
             const jwt = jwtInput.value.trim();
             const roleId = roleIdInput.value.trim();
             
@@ -222,11 +287,14 @@
                 initAudioContext();
                 
                 // 开始性能监控
-                setInterval(() => {
-                    bufferSizeHistory.push(audioBufferQueue.length);
+                bufferCheckInterval = setInterval(() => {
+                    bufferSizeHistory.push(audioQueue.length);
                     if (bufferSizeHistory.length > 10) bufferSizeHistory.shift();
                     updatePerformanceInfo();
-                }, 1000);
+                }, 500);
+                
+                // 开始延迟图表更新
+                latencyGraphInterval = setInterval(updateLatencyGraph, 1000);
             };
             
             ws.onmessage = (event) => {
@@ -238,12 +306,28 @@
                         // 计算网络延迟
                         if (response.timestamp) {
                             lastNetworkLatency = Date.now() - response.timestamp;
+                            latencyHistory.push(lastNetworkLatency);
+                            if (latencyHistory.length > 50) latencyHistory.shift();
                         }
                         
                         addLog(`收到音频片段 (格式: ${response.format}, 长度: ${response.data.length}字节, 延迟: ${lastNetworkLatency}ms)`);
                         
-                        // 处理音频片段
-                        handleAudioSegment(response.data);
+                        // 添加到音频队列
+                        audioQueue.push({
+                            data: response.data,
+                            isFinal: response.isFinal
+                        });
+                        
+                        // 如果是结束标记
+                        if (response.isFinal) {
+                            isFinalReceived = true;
+                            addLog('收到结束标记');
+                        }
+                        
+                        // 如果没有在播放，开始播放
+                        if (!isPlaying) {
+                            playNextAudio();
+                        }
                         
                     } else if (response.type === 'error') {
                         addLog(`错误: ${response.data}`);
@@ -263,15 +347,19 @@
                 updateStatus('WebSocket已断开');
                 recordBtn.disabled = true;
                 connectBtn.disabled = false;
+                clearInterval(bufferCheckInterval);
+                clearInterval(latencyGraphInterval);
             };
         });
         
-        // 初始化Web Audio API
+        // 初始化音频上下文
         function initAudioContext() {
             try {
                 if (!audioContext) {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    addLog('Web Audio API已初始化');
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                        latencyHint: 'playback'
+                    });
+                    addLog(`Web Audio API已初始化 (采样率: ${audioContext.sampleRate}Hz)`);
                 }
                 return audioContext;
             } catch (error) {
@@ -280,141 +368,78 @@
             }
         }
         
-        // 处理接收到的音频片段
-        function handleAudioSegment(base64Data) {
-            // 添加到缓冲区队列
-            audioBufferQueue.push(base64Data);
-            addLog(`音频片段已添加到缓冲区 (当前: ${audioBufferQueue.length}个)`);
-            
-            // 如果没有在播放，开始播放
-            if (!isPlaying && audioBufferQueue.length > 0) {
-                startPlayback();
+        // 播放下一个音频片段
+        function playNextAudio() {
+            if (!audioContext || audioQueue.length === 0 || isPlaying) {
+                return;
             }
-        }
-        
-        // 开始播放
-        async function startPlayback() {
-            if (audioBufferQueue.length === 0 || isPlaying) return;
-            
-            isPlaying = true;
-            updateStatus('播放中...');
             
             try {
-                // 创建音频源
-                audioSource = audioContext.createBufferSource();
+                const audioItem = audioQueue.shift();
+                const base64Data = audioItem.data;
                 
-                // 创建音频缓冲区
-                currentAudioBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 10, audioContext.sampleRate);
-                audioBufferDuration = 0;
-                
-                // 开始播放循环
-                playbackLoop();
-            } catch (error) {
-                addLog(`播放初始化失败: ${error.message}`);
-                isPlaying = false;
-                updateStatus('播放失败');
-            }
-        }
-        
-        // 播放循环
-        async function playbackLoop() {
-            if (!isPlaying) return;
-            
-            try {
-                // 检查是否有新数据
-                if (audioBufferQueue.length > 0) {
-                    const base64Data = audioBufferQueue.shift();
-                    
-                    // 解码音频数据
-                    const byteCharacters = atob(base64Data);
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let i = 0; i < byteCharacters.length; i++) {
-                        byteNumbers[i] = byteCharacters.charCodeAt(i);
-                    }
-                    const byteArray = new Uint8Array(byteNumbers);
-                    
-                    // 解码音频
-                    const audioBufferData = await audioContext.decodeAudioData(byteArray.buffer);
-                    
-                    // 应用淡入淡出效果
-                    applyFade(audioBufferData);
-                    
-                    // 将数据复制到主缓冲区
-                    const sourceData = audioBufferData.getChannelData(0);
-                    const targetData = currentAudioBuffer.getChannelData(0);
-                    
-                    // 计算写入位置
-                    const writePosition = Math.floor(audioBufferDuration * audioContext.sampleRate);
-                    
-                    // 确保有足够空间
-                    if (writePosition + sourceData.length <= targetData.length) {
-                        // 复制数据
-                        for (let i = 0; i < sourceData.length; i++) {
-                            targetData[writePosition + i] = sourceData[i];
-                        }
-                        
-                        // 更新缓冲区时长
-                        audioBufferDuration += audioBufferData.duration;
-                        
-                        addLog(`音频数据写入缓冲区 (位置: ${writePosition}, 时长: ${audioBufferData.duration.toFixed(2)}秒)`);
-                    } else {
-                        addLog('缓冲区空间不足，跳过此片段');
-                    }
+                // 解码base64音频数据
+                const byteCharacters = atob(base64Data);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
                 }
+                const byteArray = new Uint8Array(byteNumbers);
                 
-                // 如果还没有开始播放，且有足够数据
-                if (!playbackStartTime && audioBufferDuration > 0.2) {
-                    playbackStartTime = audioContext.currentTime;
-                    audioSource.buffer = currentAudioBuffer;
-                    audioSource.connect(audioContext.destination);
-                    audioSource.start();
-                    addLog('开始播放音频');
-                }
-                
-                // 检查播放位置
-                if (playbackStartTime) {
-                    const currentTime = audioContext.currentTime;
-                    playbackPosition = currentTime - playbackStartTime;
-                    
-                    // 如果接近缓冲区末尾，且没有更多数据，停止播放
-                    if (playbackPosition > audioBufferDuration - 0.1 && audioBufferQueue.length === 0) {
-                        addLog('播放完成');
+                // 解码音频数据
+                audioContext.decodeAudioData(byteArray.buffer)
+                    .then(audioBuffer => {
+                        isPlaying = true;
+                        updateStatus('播放中...');
+                        
+                        // 创建音频源
+                        currentAudioSource = audioContext.createBufferSource();
+                        currentAudioSource.buffer = audioBuffer;
+                        
+                        // 连接到输出
+                        currentAudioSource.connect(audioContext.destination);
+                        
+                        // 播放音频
+                        currentAudioSource.start();
+                        
+                        // 设置播放结束回调
+                        currentAudioSource.onended = () => {
+                            addLog(`音频片段播放完成 (时长: ${audioBuffer.duration.toFixed(2)}秒)`);
+                            isPlaying = false;
+                            
+                            // 检查是否是最后一个片段
+                            if (audioItem.isFinal || isFinalReceived) {
+                                updateStatus('播放完成');
+                                isFinalReceived = false;
+                            } else if (audioQueue.length > 0) {
+                                // 播放下一个片段
+                                setTimeout(playNextAudio, 0);
+                            } else {
+                                updateStatus('等待更多数据...');
+                            }
+                        };
+                        
+                        addLog(`开始播放音频片段 (时长: ${audioBuffer.duration.toFixed(2)}秒)`);
+                    })
+                    .catch(error => {
+                        addLog(`音频解码错误: ${error.message}`);
                         isPlaying = false;
-                        updateStatus('播放完成');
-                        return;
-                    }
-                }
+                        updateStatus('解码失败');
+                        
+                        // 尝试播放下一个片段
+                        if (audioQueue.length > 0) {
+                            setTimeout(playNextAudio, 0);
+                        }
+                    });
                 
-                // 继续循环
-                setTimeout(() => playbackLoop(), 50);
             } catch (error) {
                 addLog(`播放错误: ${error.message}`);
                 isPlaying = false;
                 updateStatus('播放失败');
-            }
-        }
-        
-        // 应用淡入淡出效果
-        function applyFade(audioBuffer, fadeDuration = 0.05) {
-            const sampleRate = audioBuffer.sampleRate;
-            const fadeSamples = Math.floor(fadeDuration * sampleRate);
-            
-            // 应用淡入效果到开头
-            for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
-                const channelData = audioBuffer.getChannelData(channel);
-                for (let i = 0; i < fadeSamples; i++) {
-                    const gain = i / fadeSamples;
-                    channelData[i] *= gain;
-                }
-            }
-            
-            // 应用淡出效果到结尾
-            for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
-                const channelData = audioBuffer.getChannelData(channel);
-                const length = channelData.length;
-                for (let i = length - fadeSamples; i < length; i++) {
-                    const gain = (length - i) / fadeSamples;
-                    channelData[i] *= gain;
+                
+                // 尝试播放下一个片段
+                if (audioQueue.length > 0) {
+                    setTimeout(playNextAudio, 0);
                 }
             }
         }
@@ -497,6 +522,28 @@
                 updateStatus('录音已停止');
                 recordBtn.disabled = false;
                 stopBtn.disabled = true;
+            }
+        });
+        
+        // 清理资源
+        window.addEventListener('beforeunload', () => {
+            if (ws) ws.close();
+            if (mediaRecorder) mediaRecorder.stop();
+            clearInterval(bufferCheckInterval);
+            clearInterval(latencyGraphInterval);
+            
+            // 停止当前播放
+            if (currentAudioSource) {
+                currentAudioSource.stop();
+            }
+        });
+        
+        // 自动播放策略
+        document.addEventListener('click', () => {
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume().then(() => {
+                    addLog('用户交互后恢复音频上下文');
+                });
             }
         });
     </script>

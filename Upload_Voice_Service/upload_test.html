@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>音频上传测试</title>
+    <title>通用文件上传测试</title>
     <style>
         body {
             font-family: 'Microsoft YaHei', sans-serif;
-            max-width: 600px;
+            max-width: 800px;
             margin: 40px auto;
             padding: 20px;
             background-color: #f5f5f5;
@@ -60,41 +60,55 @@
             color: #a94442;
             border: 1px solid #ebccd1;
         }
-        .audio-player {
+        .file-info {
             margin-top: 20px;
-            width: 100%;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .file-preview {
+            max-width: 100%;
+            max-height: 300px;
+            margin-top: 15px;
+            display: block;
         }
     </style>
 </head>
 <body>
     <div class="upload-container">
-        <h1>音频上传测试</h1>
+        <h1>通用文件上传测试</h1>
         <div class="form-group">
-            <input type="file" id="audioFile" accept=".mp3,.wav,.ogg,.flac">
+            <input type="file" id="fileInput">
         </div>
-        <button id="uploadBtn">上传音频</button>
+        <button id="uploadBtn">上传文件</button>
         
         <div id="result"></div>
         
-        <div class="audio-player" id="audioPlayerContainer" style="display:none;">
-            <h3>播放上传的音频:</h3>
-            <audio id="audioPlayer" controls></audio>
+        <div class="file-info" id="fileInfo" style="display:none;">
+            <h3>文件信息</h3>
+            <p><strong>文件名:</strong> <span id="fileName"></span></p>
+            <p><strong>文件类型:</strong> <span id="fileType"></span></p>
+            <p><strong>文件大小:</strong> <span id="fileSize"></span></p>
+            <p><strong>下载链接:</strong> <a id="fileUrl" target="_blank">点击下载</a></p>
+            <div id="previewContainer"></div>
         </div>
     </div>
 
     <script>
         document.getElementById('uploadBtn').addEventListener('click', function() {
-            const fileInput = document.getElementById('audioFile');
+            const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
             
             if (!file) {
-                showResult('请选择音频文件', 'error');
+                showResult('请选择文件', 'error');
                 return;
             }
             
             const formData = new FormData();
             formData.append('file', file);
             
+            // 修改为请求本地服务器
             fetch('https://ai.mcell.top/api/upload_voice', {
                 method: 'POST',
                 body: formData
@@ -104,16 +118,56 @@
                 if (data.message === '文件上传成功') {
                     showResult(`上传成功! 文件名: ${data.filename}`, 'success');
                     
-                    // 显示音频播放器
-                    const audioPlayer = document.getElementById('audioPlayer');
-                    audioPlayer.src = `https://ai.mcell.top${data.url}`;
-                    document.getElementById('audioPlayerContainer').style.display = 'block';
+                    // 显示文件信息
+                    document.getElementById('fileName').textContent = data.filename;
+                    document.getElementById('fileType').textContent = data.filetype || file.type;
+                    document.getElementById('fileSize').textContent = formatFileSize(file.size);
+                    
+                    // 修正下载链接指向本地
+                    document.getElementById('fileUrl').href = `https://ai.mcell.top${data.url}`;
+                    document.getElementById('fileUrl').textContent = `下载文件`;
+                    
+                    // 预览支持的文件类型
+                    const previewContainer = document.getElementById('previewContainer');
+                    previewContainer.innerHTML = '';
+                    
+                    if (file.type.startsWith('image/')) {
+                        const img = document.createElement('img');
+                        img.src = URL.createObjectURL(file);
+                        img.className = 'file-preview';
+                        previewContainer.appendChild(img);
+                    } else if (file.type.startsWith('audio/')) {
+                        const audio = document.createElement('audio');
+                        audio.src = URL.createObjectURL(file);
+                        audio.controls = true;
+                        audio.className = 'file-preview';
+                        previewContainer.appendChild(audio);
+                    } else if (file.type.startsWith('video/')) {
+                        const video = document.createElement('video');
+                        video.src = URL.createObjectURL(file);
+                        video.controls = true;
+                        video.className = 'file-preview';
+                        previewContainer.appendChild(video);
+                    } else if (file.type === 'application/pdf') {
+                        const iframe = document.createElement('iframe');
+                        iframe.src = URL.createObjectURL(file);
+                        iframe.className = 'file-preview';
+                        iframe.style.width = '100%';
+                        iframe.style.height = '500px';
+                        previewContainer.appendChild(iframe);
+                    } else {
+                        previewContainer.innerHTML = '<p>不支持预览此文件类型</p>';
+                    }
+                    
+                    document.getElementById('fileInfo').style.display = 'block';
                 } else {
                     showResult(`上传失败: ${data.error || '未知错误'}`, 'error');
+                    document.getElementById('fileInfo').style.display = 'none';
                 }
             })
             .catch(error => {
                 showResult(`请求失败: ${error.message}`, 'error');
+                document.getElementById('fileInfo').style.display = 'none';
             });
         });
         
@@ -122,6 +176,14 @@
             resultDiv.textContent = message;
             resultDiv.className = type;
             resultDiv.style.display = 'block';
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
     </script>
 </body>

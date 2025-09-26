@@ -33,6 +33,7 @@ func InitDB() {
 		&model.Role{},
 		&model.ChatHistory{},
 		&model.UserRoleHistory{},
+		&model.VoiceChatHistory{},
 	)
 
 }

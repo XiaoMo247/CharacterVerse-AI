@@ -383,13 +383,13 @@
                 responseContent.textContent = '发送请求中...';
                 responseContent.parentElement.classList.remove('success', 'error');
                 addLog('开始发送创建角色请求...');
-                addLog(`请求地址: http://localhost:8080/api/user/addRole`);
+                addLog(`请求地址: http://localhost:8080/api/role/add`);
                 addLog(`请求方法: POST`);
                 addLog(`请求头: Authorization: Bearer ${jwtToken}`);
                 addLog(`请求体: ${JSON.stringify(requestData)}`);
                 
                 // 发送API请求
-                fetch('http://localhost:8080/api/user/addRole', {
+                fetch('http://localhost:8080/api/role/add', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
