@@ -165,7 +165,6 @@ const Chat = () => {
         message.error('发送消息失败')
       }
   }
-
   const handleSendMessage = () => {
     if (!inputValue.trim() || !selectedCharacter) return
 
