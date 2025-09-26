@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>语音通话功能测试 - 无缝播放版</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 5px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f0f0f0;
+        }
+        .audio-container {
+            margin-top: 20px;
+        }
+        .log {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f8f8f8;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        .performance-monitor {
+            margin-top: 10px;
+            padding: 8px;
+            background-color: #e8f4fc;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+        .buffer-indicator {
+            margin-top: 10px;
+            height: 10px;
+            background-color: #eee;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .buffer-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0%;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>语音通话功能测试 - 无缝播放版</h1>
+        
+        <div class="input-group">
+            <label for="jwt">JWT Token:</label>
+            <input type="text" id="jwt" placeholder="输入JWT认证令牌">
+        </div>
+        
+        <div class="input-group">
+            <label for="roleId">角色ID:</label>
+            <input type="number" id="roleId" placeholder="输入角色ID">
+        </div>
+        
+        <div class="input-group">
+            <button id="connectBtn">连接WebSocket</button>
+            <button id="recordBtn" disabled>开始录音</button>
+            <button id="stopBtn" disabled>停止录音</button>
+        </div>
+        
+        <div class="status">
+            <strong>状态:</strong> <span id="status">未连接</span>
+        </div>
+        
+        <div class="audio-container">
+            <audio id="audioPlayer" controls></audio>
+        </div>
+        
+        <div class="performance-monitor">
+            <strong>性能监控:</strong>
+            <div id="performanceInfo">缓冲区: 0 | 状态: 空闲 | 延迟: 0ms</div>
+            <div class="buffer-indicator">
+                <div class="buffer-fill" id="bufferFill"></div>
+            </div>
+        </div>
+        
+        <div class="log">
+            <strong>日志:</strong>
+            <div id="logContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let mediaRecorder;
+        let audioChunks = [];
+        let ws;
+        let audioContext;
+        let audioSource;
+        let lastNetworkLatency = 0;
+        let bufferSizeHistory = [];
+        let audioBufferQueue = [];
+        let isPlaying = false;
+        let currentAudioBuffer = null;
+        let playbackStartTime = 0;
+        let playbackPosition = 0;
+        let audioBufferDuration = 0;
+        let bufferFillElement = document.getElementById('bufferFill');
+        
+        // DOM元素
+        const jwtInput = document.getElementById('jwt');
+        const roleIdInput = document.getElementById('roleId');
+        const connectBtn = document.getElementById('connectBtn');
+        const recordBtn = document.getElementById('recordBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const logContent = document.getElementById('logContent');
+        const statusElement = document.getElementById('status');
+        const performanceInfo = document.getElementById('performanceInfo');
+        
+        // 添加日志
+        function addLog(message) {
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContent.appendChild(logEntry);
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+        
+        // 更新状态
+        function updateStatus(message) {
+            statusElement.textContent = message;
+            addLog(`状态更新: ${message}`);
+        }
+        
+        // 更新性能信息
+        function updatePerformanceInfo() {
+            const bufferSize = audioBufferQueue.length;
+            const status = isPlaying ? '播放中' : '空闲';
+            const avgBuffer = bufferSizeHistory.length > 0 ? 
+                Math.round(bufferSizeHistory.reduce((a, b) => a + b, 0) / bufferSizeHistory.length) : 0;
+            
+            performanceInfo.textContent = 
+                `缓冲区: ${bufferSize} | 状态: ${status} | 平均缓冲: ${avgBuffer} | 延迟: ${lastNetworkLatency}ms`;
+            
+            // 更新缓冲指示器
+            const bufferFill = Math.min(100, Math.max(0, bufferSize * 20));
+            bufferFillElement.style.width = `${bufferFill}%`;
+        }
+        
+        // 连接WebSocket
+        connectBtn.addEventListener('click', () => {
+            const jwt = jwtInput.value.trim();
+            const roleId = roleIdInput.value.trim();
+            
+            if (!jwt) {
+                alert('请输入JWT Token');
+                return;
+            }
+            
+            if (!roleId) {
+                alert('请输入角色ID');
+                return;
+            }
+            
+            // 创建WebSocket连接
+            ws = new WebSocket(`ws://localhost:8080/api/ws/voice_chat?token=${jwt}`);
+            
+            ws.onopen = () => {
+                updateStatus('WebSocket已连接');
+                recordBtn.disabled = false;
+                connectBtn.disabled = true;
+                
+                // 初始化音频上下文
+                initAudioContext();
+                
+                // 开始性能监控
+                setInterval(() => {
+                    bufferSizeHistory.push(audioBufferQueue.length);
+                    if (bufferSizeHistory.length > 10) bufferSizeHistory.shift();
+                    updatePerformanceInfo();
+                }, 1000);
+            };
+            
+            ws.onmessage = (event) => {
+                const receiveTime = Date.now();
+                try {
+                    const response = JSON.parse(event.data);
+                    
+                    if (response.type === 'audio') {
+                        // 计算网络延迟
+                        if (response.timestamp) {
+                            lastNetworkLatency = Date.now() - response.timestamp;
+                        }
+                        
+                        addLog(`收到音频片段 (格式: ${response.format}, 长度: ${response.data.length}字节, 延迟: ${lastNetworkLatency}ms)`);
+                        
+                        // 处理音频片段
+                        handleAudioSegment(response.data);
+                        
+                    } else if (response.type === 'error') {
+                        addLog(`错误: ${response.data}`);
+                        updateStatus(`错误: ${response.data}`);
+                    }
+                } catch (error) {
+                    addLog(`解析消息错误: ${error.message}`);
+                }
+            };
+            
+            ws.onerror = (error) => {
+                addLog(`WebSocket错误: ${error.message}`);
+                updateStatus('WebSocket连接错误');
+            };
+            
+            ws.onclose = () => {
+                updateStatus('WebSocket已断开');
+                recordBtn.disabled = true;
+                connectBtn.disabled = false;
+            };
+        });
+        
+        // 初始化Web Audio API
+        function initAudioContext() {
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    addLog('Web Audio API已初始化');
+                }
+                return audioContext;
+            } catch (error) {
+                addLog(`无法初始化Web Audio API: ${error.message}`);
+                return null;
+            }
+        }
+        
+        // 处理接收到的音频片段
+        function handleAudioSegment(base64Data) {
+            // 添加到缓冲区队列
+            audioBufferQueue.push(base64Data);
+            addLog(`音频片段已添加到缓冲区 (当前: ${audioBufferQueue.length}个)`);
+            
+            // 如果没有在播放，开始播放
+            if (!isPlaying && audioBufferQueue.length > 0) {
+                startPlayback();
+            }
+        }
+        
+        // 开始播放
+        async function startPlayback() {
+            if (audioBufferQueue.length === 0 || isPlaying) return;
+            
+            isPlaying = true;
+            updateStatus('播放中...');
+            
+            try {
+                // 创建音频源
+                audioSource = audioContext.createBufferSource();
+                
+                // 创建音频缓冲区
+                currentAudioBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 10, audioContext.sampleRate);
+                audioBufferDuration = 0;
+                
+                // 开始播放循环
+                playbackLoop();
+            } catch (error) {
+                addLog(`播放初始化失败: ${error.message}`);
+                isPlaying = false;
+                updateStatus('播放失败');
+            }
+        }
+        
+        // 播放循环
+        async function playbackLoop() {
+            if (!isPlaying) return;
+            
+            try {
+                // 检查是否有新数据
+                if (audioBufferQueue.length > 0) {
+                    const base64Data = audioBufferQueue.shift();
+                    
+                    // 解码音频数据
+                    const byteCharacters = atob(base64Data);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    
+                    // 解码音频
+                    const audioBufferData = await audioContext.decodeAudioData(byteArray.buffer);
+                    
+                    // 应用淡入淡出效果
+                    applyFade(audioBufferData);
+                    
+                    // 将数据复制到主缓冲区
+                    const sourceData = audioBufferData.getChannelData(0);
+                    const targetData = currentAudioBuffer.getChannelData(0);
+                    
+                    // 计算写入位置
+                    const writePosition = Math.floor(audioBufferDuration * audioContext.sampleRate);
+                    
+                    // 确保有足够空间
+                    if (writePosition + sourceData.length <= targetData.length) {
+                        // 复制数据
+                        for (let i = 0; i < sourceData.length; i++) {
+                            targetData[writePosition + i] = sourceData[i];
+                        }
+                        
+                        // 更新缓冲区时长
+                        audioBufferDuration += audioBufferData.duration;
+                        
+                        addLog(`音频数据写入缓冲区 (位置: ${writePosition}, 时长: ${audioBufferData.duration.toFixed(2)}秒)`);
+                    } else {
+                        addLog('缓冲区空间不足，跳过此片段');
+                    }
+                }
+                
+                // 如果还没有开始播放，且有足够数据
+                if (!playbackStartTime && audioBufferDuration > 0.2) {
+                    playbackStartTime = audioContext.currentTime;
+                    audioSource.buffer = currentAudioBuffer;
+                    audioSource.connect(audioContext.destination);
+                    audioSource.start();
+                    addLog('开始播放音频');
+                }
+                
+                // 检查播放位置
+                if (playbackStartTime) {
+                    const currentTime = audioContext.currentTime;
+                    playbackPosition = currentTime - playbackStartTime;
+                    
+                    // 如果接近缓冲区末尾，且没有更多数据，停止播放
+                    if (playbackPosition > audioBufferDuration - 0.1 && audioBufferQueue.length === 0) {
+                        addLog('播放完成');
+                        isPlaying = false;
+                        updateStatus('播放完成');
+                        return;
+                    }
+                }
+                
+                // 继续循环
+                setTimeout(() => playbackLoop(), 50);
+            } catch (error) {
+                addLog(`播放错误: ${error.message}`);
+                isPlaying = false;
+                updateStatus('播放失败');
+            }
+        }
+        
+        // 应用淡入淡出效果
+        function applyFade(audioBuffer, fadeDuration = 0.05) {
+            const sampleRate = audioBuffer.sampleRate;
+            const fadeSamples = Math.floor(fadeDuration * sampleRate);
+            
+            // 应用淡入效果到开头
+            for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
+                const channelData = audioBuffer.getChannelData(channel);
+                for (let i = 0; i < fadeSamples; i++) {
+                    const gain = i / fadeSamples;
+                    channelData[i] *= gain;
+                }
+            }
+            
+            // 应用淡出效果到结尾
+            for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
+                const channelData = audioBuffer.getChannelData(channel);
+                const length = channelData.length;
+                for (let i = length - fadeSamples; i < length; i++) {
+                    const gain = (length - i) / fadeSamples;
+                    channelData[i] *= gain;
+                }
+            }
+        }
+        
+        // 开始录音
+        recordBtn.addEventListener('click', async () => {
+            try {
+                updateStatus('正在获取麦克风权限...');
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                updateStatus('正在准备录音...');
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaStreamSource(stream);
+                
+                // 创建MediaRecorder
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+                
+                mediaRecorder.onstop = async () => {
+                    updateStatus('正在处理录音...');
+                    
+                    // 创建Blob并转换为WAV
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    
+                    try {
+                        // 上传录音文件
+                        updateStatus('正在上传录音...');
+                        const formData = new FormData();
+                        formData.append('file', audioBlob, 'recording.wav');
+                        
+                        const uploadResponse = await fetch('https://ai.mcell.top/api/upload_voice', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        const uploadData = await uploadResponse.json();
+                        
+                        if (uploadData.url) {
+                            const voiceUrl = `https://ai.mcell.top${uploadData.url}`;
+                            addLog(`录音上传成功: ${voiceUrl}`);
+                            
+                            // 通过WebSocket发送语音消息
+                            const message = {
+                                role_id: parseInt(roleIdInput.value),
+                                voice_url: voiceUrl,
+                                format: 'wav',
+                                timestamp: Date.now() // 添加时间戳用于延迟计算
+                            };
+                            
+                            ws.send(JSON.stringify(message));
+                            updateStatus('语音消息已发送，等待响应...');
+                        } else {
+                            throw new Error('上传失败: ' + JSON.stringify(uploadData));
+                        }
+                    } catch (error) {
+                        addLog(`上传错误: ${error.message}`);
+                        updateStatus('上传失败');
+                    }
+                };
+                
+                // 开始录音
+                mediaRecorder.start();
+                updateStatus('录音中...');
+                recordBtn.disabled = true;
+                stopBtn.disabled = false;
+            } catch (error) {
+                addLog(`录音错误: ${error.message}`);
+                updateStatus('无法访问麦克风');
+            }
+        });
+        
+        // 停止录音
+        stopBtn.addEventListener('click', () => {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                updateStatus('录音已停止');
+                recordBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -600,3 +600,375 @@ axios.put(`/api/role/${roleId}`, updateData, {
 })
 .catch(error => console.error('请求失败:', error));
 ```
+
+
+
+
+
+我们之前修改了语音回复的返回格式，现在返回的是语音URL而不是base64编码的音频数据。因此，我们需要更新API文档以反映这一变化。
+
+### WebSocket 聊天 API 文档 (更新版)
+
+#### 1. 连接建立
+- **URL**: `ws://your-domain.com/api/ws/chat`
+- **认证**: JWT Bearer Token (在HTTP头中)
+- **协议**: WebSocket
+- **连接流程**:
+  1. 客户端发起WebSocket连接请求
+  2. 服务端验证JWT Token
+  3. 连接升级为WebSocket协议
+  4. 开始双向通信
+
+#### 2. 消息格式规范
+
+##### 客户端 → 服务端 (用户发送消息)
+```json
+{
+  "user_id": 123,          // 用户ID (从JWT中获取，但客户端不需要发送，由服务端从上下文中获取，所以这里实际上不需要这个字段)
+  "role_id": 456,          // 角色ID (必填)
+  "message": "你好",        // 消息内容 (文本或语音URL)
+  "type": "text",          // 消息类型: "text" 或 "voice" (必填)
+  "format": "mp3",         // 语音格式 (当type="voice"时必填)
+  "response_type": 0       // 期望的回复类型: 
+                            // 0=文字回复, 1=语音回复, 2=随机回复 (必填)
+}
+```
+
+注意：实际上，在之前的代码中，客户端发送的消息结构体包含`UserID`字段，但服务端在`ChatHandler`中已经从JWT中获取了`userID`，所以客户端不需要发送`user_id`。因此，客户端发送的消息结构体应该去掉`user_id`字段。但是，根据我们之前的代码，客户端发送的消息结构体是`ChatMessage`，其中包含`UserID`字段。这里可能存在不一致。
+
+为了解决这个不一致，我们需要调整：
+
+1. 要么客户端发送的消息包含`user_id`（但这样不安全，因为用户ID应该由服务端从认证信息中获取）
+2. 要么服务端忽略客户端发送的`user_id`，而使用从JWT中解析出的`userID`
+
+在我们的代码中，服务端在`ChatHandler`中已经将`userID`（从JWT中获取）传递给了`HandleChatSession`，然后在处理消息时使用的是这个`userID`，而不是客户端消息中的`UserID`。因此，客户端不应该发送`user_id`，或者即使发送了，服务端也不会使用。
+
+所以，我们修改客户端发送的消息结构，去掉`user_id`字段。但是，由于WebSocket消息结构已经定义，我们需要调整代码，确保服务端忽略客户端发送的`UserID`字段。
+
+但是，为了保持文档的准确性，我们按照实际应该发送的格式来写文档。
+
+因此，修正后的客户端发送消息格式：
+
+```json
+{
+  "role_id": 456,          // 角色ID (必填)
+  "message": "你好",        // 消息内容 (文本或语音URL)
+  "type": "text",          // 消息类型: "text" 或 "voice" (必填)
+  "format": "mp3",         // 语音格式 (当type="voice"时必填)
+  "response_type": 0       // 期望的回复类型: 
+                            // 0=文字回复, 1=语音回复, 2=随机回复 (必填)
+}
+```
+
+##### 服务端 → 客户端 (AI回复消息)
+```json
+{
+  "role_id": 456,          // 角色ID
+  "message": "你好",        // 文本内容（当type="text"时）或语音URL（当type="voice"时）
+  "type": "text",          // 消息类型: "text" 或 "voice"
+  "format": "mp3"          // 语音格式 (当type="voice"时存在)
+}
+```
+
+**字段说明**:
+- `type`:
+  - `text`: 文本回复，`message`字段为文本内容
+  - `voice`: 语音回复，`message`字段为语音文件的URL（注意：现在返回的是URL，而不是base64编码的音频数据）
+- `format`: 当`type="voice"`时指定音频格式
+
+**示例**:
+1. 文本回复:
+```json
+{
+  "role_id": 1,
+  "message": "亮在此，主公有何吩咐？",
+  "type": "text"
+}
+```
+
+2. 语音回复:
+```json
+{
+  "role_id": 1,
+  "message": "https://ai.mcell.top/uploads/1758808881083732096.mp3",
+  "type": "voice",
+  "format": "mp3"
+}
+```
+
+#### 3. 回复类型控制 (`response_type`)
+
+| 值   | 类型     | 行为                             |
+| ---- | -------- | -------------------------------- |
+| 0    | 文本回复 | AI始终返回文本消息               |
+| 1    | 语音回复 | AI始终返回语音消息 (返回语音URL) |
+| 2    | 随机回复 | AI随机返回文本或语音 (各50%概率) |
+
+#### 4. 错误处理
+```json
+{
+  "error": "错误描述",
+  "code": 400
+}
+```
+
+**常见错误码**:
+- 400: 消息格式错误
+- 401: 未认证
+- 500: 服务器内部错误
+
+#### 5. 完整交互示例
+
+**用户发送语音消息，期望随机回复**:
+```json
+{
+  "role_id": 1,
+  "message": "https://ai.mcell.top/uploads/audio123.mp3",
+  "type": "voice",
+  "format": "mp3",
+  "response_type": 2
+}
+```
+
+**AI可能回复**:
+1. 文本回复:
+```json
+{
+  "role_id": 1,
+  "message": "亮观天象，今夜必有东风",
+  "type": "text"
+}
+```
+
+2. 语音回复 (返回语音URL):
+```json
+{
+  "role_id": 1,
+  "message": "https://ai.mcell.top/uploads/1758808881083732096.mp3",
+  "type": "voice",
+  "format": "mp3"
+}
+```
+
+#### 6. 注意事项
+1. 语音消息需先通过独立API上传获取URL:
+   ```
+   POST /api/upload_voice
+   Content-Type: multipart/form-data
+   
+   file=[语音文件]
+   ```
+   响应示例：
+   ```json
+   {
+     "message": "文件上传成功",
+     "filename": "tts_audio.mp3",
+     "url": "/uploads/1758808881083732096.mp3"
+   }
+   ```
+   注意：返回的URL是相对路径，客户端需要拼接基础URL（如：https://ai.mcell.top）得到完整URL。
+
+2. WebSocket连接需要有效的JWT认证，JWT Token应通过HTTP头（Authorization: Bearer <token>）在建立WebSocket连接时发送。
+
+3. 语音回复返回的是语音文件的URL，前端可以直接使用该URL播放音频。
+
+4. 随机回复类型(`response_type=2`)由服务端决定最终回复形式（文本或语音）。
+
+此API设计支持灵活的聊天交互模式，用户可根据需要选择不同的消息类型和回复形式。
+
+### WebSocket 聊天 API 文档
+
+#### 1. 连接建立
+- **URL**: `ws://your-domain.com/api/ws/chat`
+- **认证**: JWT Bearer Token (在HTTP头中)
+- **协议**: WebSocket
+- **连接流程**:
+  1. 客户端发起WebSocket连接请求
+  2. 服务端验证JWT Token
+  3. 连接升级为WebSocket协议
+  4. 开始双向通信
+
+#### 2. 消息格式规范
+
+##### 客户端 → 服务端 (用户发送消息)
+```json
+{
+  "role_id": 123,          // 角色ID (必填)
+  "message": "你好",        // 消息内容 (文本或语音URL)
+  "type": "text",          // 消息类型: "text" 或 "voice" (必填)
+  "format": "mp3",         // 语音格式 (当type="voice"时必填)
+  "response_type": 0       // 期望的回复类型: 
+                            // 0=文字回复, 1=语音回复, 2=随机回复 (必填)
+}
+```
+
+**字段说明**:
+- `type`:
+  - `text`: 文本消息，`message`字段为文本内容
+  - `voice`: 语音消息，`message`字段为语音文件URL
+- `format`: 当`type="voice"`时需指定音频格式 (如 mp3, wav)
+- `response_type`: 控制AI回复形式
+
+**示例**:
+1. 发送文本消息，期望语音回复:
+```json
+{
+  "role_id": 1,
+  "message": "你好，诸葛亮",
+  "type": "text",
+  "response_type": 1
+}
+```
+
+2. 发送语音消息，期望随机回复:
+```json
+{
+  "role_id": 1,
+  "message": "https://ai.mcell.top/uploads/audio123.mp3",
+  "type": "voice",
+  "format": "mp3",
+  "response_type": 2
+}
+```
+
+##### 服务端 → 客户端 (AI回复消息)
+```json
+{
+  "role_id": 123,          // 角色ID
+  "message": "你好",        // 文本内容或语音URL
+  "type": "text",          // 消息类型: "text" 或 "voice"
+  "format": "mp3"          // 语音格式 (当type="voice"时存在)
+}
+```
+
+**字段说明**:
+- `type`:
+  - `text`: 文本回复，`message`字段为文本内容
+  - `voice`: 语音回复，`message`字段为语音文件URL
+- `format`: 当`type="voice"`时指定音频格式
+
+**示例**:
+1. 文本回复:
+```json
+{
+  "role_id": 1,
+  "message": "亮在此，主公有何吩咐？",
+  "type": "text"
+}
+```
+
+2. 语音回复:
+```json
+{
+  "role_id": 1,
+  "message": "https://ai.mcell.top/uploads/1758808881083732096.mp3",
+  "type": "voice",
+  "format": "mp3"
+}
+```
+
+#### 3. 回复类型控制 (`response_type`)
+
+| 值   | 类型     | 行为                             |
+| ---- | -------- | -------------------------------- |
+| 0    | 文本回复 | AI始终返回文本消息               |
+| 1    | 语音回复 | AI返回语音URL                    |
+| 2    | 随机回复 | AI随机返回文本或语音 (各50%概率) |
+
+#### 4. 错误处理
+```json
+{
+  "error": "错误描述",
+  "code": 400
+}
+```
+
+**常见错误码**:
+- 400: 消息格式错误
+- 401: 未认证
+- 500: 服务器内部错误
+
+#### 5. 完整交互示例
+
+**用户发送**:
+```json
+{
+  "role_id": 1,
+  "message": "https://ai.mcell.top/uploads/audio123.mp3",
+  "type": "voice",
+  "format": "mp3",
+  "response_type": 2
+}
+```
+
+**AI可能回复**:
+1. 文本回复:
+```json
+{
+  "role_id": 1,
+  "message": "亮观天象，今夜必有东风",
+  "type": "text"
+}
+```
+
+2. 语音回复:
+```json
+{
+  "role_id": 1,
+  "message": "https://ai.mcell.top/uploads/1758808881083732096.mp3",
+  "type": "voice",
+  "format": "mp3"
+}
+```
+
+#### 6. 语音处理流程
+1. **语音上传**:
+   ```
+   POST /api/upload_voice
+   Content-Type: multipart/form-data
+   
+   file=[语音文件]
+   ```
+   
+   **响应**:
+   ```json
+   {
+     "message": "文件上传成功",
+     "filename": "tts_audio.mp3",
+     "url": "/uploads/1758808881083732096.mp3"
+   }
+   ```
+
+2. **语音识别**:
+   - 客户端发送语音URL给服务端
+   - 服务端识别语音内容并返回文本
+
+3. **语音合成**:
+   - 服务端生成语音后上传到服务器
+   - 返回语音URL给客户端
+
+#### 7. 前端处理建议
+
+```javascript
+// 处理AI回复
+function handleAIResponse(response) {
+  if (response.type === 'text') {
+    // 显示文本消息
+    displayTextMessage(response.message);
+  } else if (response.type === 'voice') {
+    // 播放语音
+    playVoice(response.message);
+  }
+}
+
+// 播放语音函数
+function playVoice(voiceURL) {
+  const audioPlayer = document.createElement('audio');
+  audioPlayer.src = voiceURL;
+  audioPlayer.controls = true;
+  audioPlayer.play();
+  
+  // 添加到聊天界面
+  chatContainer.appendChild(audioPlayer);
+}
+```
