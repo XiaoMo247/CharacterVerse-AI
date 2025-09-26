@@ -1,4 +1,4 @@
-// Chat页面相关的API服务
+import http from "../../../utils/request";
 
 // AI回复模板
 const AI_RESPONSES = {
@@ -286,4 +286,14 @@ export const statsService = {
       }, 400)
     })
   }
+}
+
+export const processAndSendAudio = async (formData) => {
+    const res = await fetch('https://ai.mcell.top/api/upload_voice', {
+    method: 'POST',
+    body: formData
+    // 不设置任何headers，让浏览器自动处理
+  })
+   const data = await res.json();
+   return data
 }

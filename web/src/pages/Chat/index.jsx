@@ -26,7 +26,7 @@ import './Chat.css'
 import  ChatArea  from './components/ChatArea'
 // import AdvancedMicrophoneRecorder from '../../utils/advanced-microphone'
 import AudioWorkletVoiceRecorder from './components/Audio/AudioWorkletVoiceRecorder'
-import VoiceBubbleDemo from './components/VoiceBubble/VoiceBubbleDemo'
+import { processAndSendAudio } from './server/chatService'
 
 const { TextArea } = Input
 const { Text, Title } = Typography
@@ -146,7 +146,17 @@ const Chat = () => {
   }
 
    const sendMessageToAI = async (message) => {
-      const success = await streamingChatRef.current.sendMessage(message)
+      const formData = new FormData();
+      formData.append('file', message.blob, 'recording.wav');
+      const data = await processAndSendAudio(formData)
+      const audioUrl = `https://ai.mcell.top${data.url}`;
+      const newMessage = {
+        ...message,
+        message: audioUrl
+      }
+      setMessages(prev => [...prev, newMessage])
+      const success = await streamingChatRef.current.sendMessage(newMessage)
+
       if (success) {
         setInputValue('')
         setLoading([...loading, 1])
@@ -216,9 +226,8 @@ const Chat = () => {
         type: 'voice',
         role: 'user',
         format: 'wav'
-      }
-      setMessages(prev => [...prev, recording])
-          // 发送消息到WebSocket服务器
+      }          
+      // 发送消息到WebSocket服务器
       sendMessageToAI(recording)
     }
   }
@@ -379,7 +388,6 @@ const Chat = () => {
           </Col>
         </Row>
       </div>
-      <VoiceBubbleDemo></VoiceBubbleDemo>
     </PageContainer>
   )
 }

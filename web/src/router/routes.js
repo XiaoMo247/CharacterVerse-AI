@@ -6,7 +6,6 @@ const CharacterManagement = lazy(() => import('../pages/CharacterManagement'))
 const Chat = lazy(() => import('../pages/Chat'))
 const Profile = lazy(() => import('../pages/Profile'))
 const Settings = lazy(() => import('../pages/Settings'))
-const VoiceDemo = lazy(() => import('../pages/VoiceDemo'))
 
 // 路由配置表
 export const routes = [
