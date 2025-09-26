@@ -18,7 +18,8 @@ import {
 import { 
   SendOutlined, 
   DeleteOutlined,
-  AudioOutlined
+  AudioOutlined,
+  PhoneOutlined
 } from '@ant-design/icons'
 import PageContainer from '../../components/PageContainer'
 import StreamingChat from '../../utils/webSocket'
@@ -241,7 +242,7 @@ const Chat = () => {
     return (
           <Button
             type="primary"
-            icon={ <AudioOutlined />}
+            icon={ <PhoneOutlined />}
             onClick={() => startCall(selectedCharacter)}
             >
           </Button>
