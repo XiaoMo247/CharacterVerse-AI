@@ -21,6 +21,7 @@ func RouterInit(r *gin.Engine) {
 	auth.Use(middleware.JWTAuth())
 	{
 		auth.GET("/ws/chat", api.ChatHandler)
+		auth.GET("/ws/voice_chat", api.VoiceChatHandler)
 
 		roleGroup := auth.Group("/role")
 		{
