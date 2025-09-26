@@ -27,6 +27,8 @@ import  ChatArea  from './components/ChatArea'
 // import AdvancedMicrophoneRecorder from '../../utils/advanced-microphone'
 import AudioWorkletVoiceRecorder from './components/Audio/AudioWorkletVoiceRecorder'
 import { processAndSendAudio } from './server/chatService'
+import { VoiceCallDemo } from './components/VoiceCall'
+import { VoiceCallProvider, useVoiceCall} from './components/VoiceCall/VoiceCallManager'
 
 const { TextArea } = Input
 const { Text, Title } = Typography
@@ -42,7 +44,6 @@ const Chat = () => {
   const [loading, setLoading] = useState([])
   const [isRecording, setIsRecording] = useState(false)
   const [Recordings, setRecordings] = useState([])
-  
 
   const characters = [
     {
@@ -87,6 +88,7 @@ const Chat = () => {
   useEffect(() => {
     const initWebSocket = () => {
       streamingChatRef.current = new StreamingChat({
+        wsUrl: 'ws://localhost:8080/api/ws/chat',
         onConnected: () => {
           // message.success('WebSocket连接成功')
         },
@@ -179,7 +181,8 @@ const Chat = () => {
       message: inputValue,
       role_id: selectedCharacter.role_id,
       timestamp: new Date().toLocaleTimeString(),
-      type: 'text'
+      type: 'text',
+      response_type: 2
     }
 
     // 添加用户消息到列表
@@ -224,13 +227,29 @@ const Chat = () => {
         message: URL.createObjectURL(audioBlob),
         type: 'voice',
         role: 'user',
-        format: 'wav'
+        format: 'wav',
+        response_type: 2
       }          
       // 发送消息到WebSocket服务器
       sendMessageToAI(recording)
     }
   }
+
+  const Vocie = () =>{
+    const { startCall} = useVoiceCall()
+    
+    return (
+          <Button
+            type="primary"
+            icon={ <AudioOutlined />}
+            onClick={() => startCall(selectedCharacter)}
+            >
+          </Button>
+    )
+  }
+
   return (
+    
     <PageContainer
       title="智能聊天"
       description="与您的AI角色进行对话交流"
@@ -372,6 +391,9 @@ const Chat = () => {
                         onClick={() => setIsRecording(true)}
                         >
                       </Button>
+                      <VoiceCallProvider>
+                              <Vocie></Vocie>
+                      </VoiceCallProvider>
                     </Space.Compact>
                   </div>
                 </>

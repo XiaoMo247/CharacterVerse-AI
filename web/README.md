@@ -1,12 +1,15 @@
-# React + Vite
+## 错误处理
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+前端的 axios 拦截器已经配置了统一的错误处理：
 
-Currently, two official plugins are available:
+- **401 错误**: 自动清除本地 token，提示用户重新登录
+- **网络错误**: 显示网络连接错误提示
+- **业务错误**: 显示后端返回的具体错误信息
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 注意事项
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. **Token 管理**: 登录成功后需要保存 token 到 localStorage 或 sessionStorage
+2. **WebSocket 认证**: WebSocket 连接需要通过 URL 参数传递 token
+3. **错误处理**: 所有接口调用都应该包含 try-catch 错误处理
+4. **CORS**: 开发环境需要确保后端配置了正确的 CORS 策略
+5. **端口配置**: 确保前端配置的 API 地址与后端服务端口一致

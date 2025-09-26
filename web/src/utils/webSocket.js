@@ -7,6 +7,7 @@ class StreamingChat {
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.reconnectInterval = 3000;
+    this.wsUrl = callbacks.wsUrl
     
     // 回调函数
     this.onStreamStart = callbacks.onStreamStart || (() => {});
@@ -28,10 +29,9 @@ class StreamingChat {
         this.onError(new Error('未找到认证token，请先登录'));
         return;
       }
-      
       // 构建 WebSocket URL，将 token 作为查询参数传递
-      const wsUrl = `ws://localhost:8080/api/ws/chat?token=${token}`;
-      this.ws = new WebSocket(wsUrl);
+      const newwsUrl = `${this.wsUrl}?token=${token}`;
+      this.ws = new WebSocket(newwsUrl);
       
       this.ws.onopen = () => {
         console.log('WebSocket连接已建立');

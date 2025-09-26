@@ -92,7 +92,3 @@ volumes:
   - ./Backend-CharacterVerse:/app
   - /app/tmp
 ```
-
-### Nginx配置反向代理（会破坏流失输出）
-* 需要代理缓冲关闭 - 会导致流式数据被缓存
-* 需要❌ Gzip压缩 - 会延迟流式数据传输

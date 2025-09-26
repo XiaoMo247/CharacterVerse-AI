@@ -36,6 +36,7 @@ class AudioWorkletRecorder {
     // 事件回调
     this.onVolumeChange = options.onVolumeChange || null
     this.onFrequencyData = options.onFrequencyData || null
+    this.onDataAvailable = options.onDataAvailable || null
     this.onError = options.onError || null
     this.onStateChange = options.onStateChange || null
     
@@ -94,9 +95,28 @@ class AudioWorkletRecorder {
           // 音频效果参数
           this.gain = 1.0
           this.noiseGate = {
-            enabled: false,
-            threshold: 0.01,
-            ratio: 0.1
+            enabled: true, // 默认启用噪音门限
+            threshold: 0.02, // 提高噪音门限阈值
+            ratio: 0.05, // 降低噪音门限比例，更强的抑制
+            attack: 0.003, // 攻击时间
+            release: 0.1 // 释放时间
+          }
+          
+          // 噪音抑制参数
+          this.noiseReduction = {
+            enabled: true,
+            spectralFloor: 0.002, // 频谱底噪
+            smoothingFactor: 0.8, // 平滑因子
+            reductionFactor: 0.7 // 噪音减少因子
+          }
+          
+          // 动态范围压缩
+          this.compressor = {
+            enabled: true,
+            threshold: 0.7, // 压缩阈值
+            ratio: 4, // 压缩比
+            attack: 0.003,
+            release: 0.1
           }
           
           // 监听主线程消息
@@ -182,30 +202,107 @@ class AudioWorkletRecorder {
         processAudioData(inputData) {
           let processedData = new Float32Array(inputData)
           
-          // 应用增益
+          // 1. 高通滤波器 - 去除低频噪音
+          processedData = this.applyHighPassFilter(processedData)
+          
+          // 2. 噪音门限处理
+          if (this.noiseGate.enabled) {
+            processedData = this.applyNoiseGate(processedData)
+          }
+          
+          // 3. 动态范围压缩
+          if (this.compressor.enabled) {
+            processedData = this.applyCompressor(processedData)
+          }
+          
+          // 4. 应用增益
           if (this.gain !== 1.0) {
             for (let i = 0; i < processedData.length; i++) {
               processedData[i] *= this.gain
             }
           }
           
-          // 应用噪声门限
-          if (this.noiseGate.enabled) {
-            for (let i = 0; i < processedData.length; i++) {
-              const amplitude = Math.abs(processedData[i])
-              if (amplitude < this.noiseGate.threshold) {
-                processedData[i] *= this.noiseGate.ratio
-              }
-            }
-          }
-          
-          // 防削波处理
+          // 5. 防削波处理
           for (let i = 0; i < processedData.length; i++) {
             if (processedData[i] > 1.0) processedData[i] = 1.0
             if (processedData[i] < -1.0) processedData[i] = -1.0
           }
           
           return processedData
+        }
+        
+        // 高通滤波器实现
+        applyHighPassFilter(data) {
+          if (!this.highPassState) {
+            this.highPassState = { x1: 0, y1: 0 }
+          }
+          
+          const cutoff = 80 // 80Hz 截止频率，去除低频噪音
+          const RC = 1.0 / (cutoff * 2 * Math.PI)
+          const dt = 1.0 / sampleRate
+          const alpha = RC / (RC + dt)
+          
+          const filtered = new Float32Array(data.length)
+          
+          for (let i = 0; i < data.length; i++) {
+            filtered[i] = alpha * (this.highPassState.y1 + data[i] - this.highPassState.x1)
+            this.highPassState.x1 = data[i]
+            this.highPassState.y1 = filtered[i]
+          }
+          
+          return filtered
+        }
+        
+        // 改进的噪音门限
+        applyNoiseGate(data) {
+          const filtered = new Float32Array(data.length)
+          
+          for (let i = 0; i < data.length; i++) {
+            const amplitude = Math.abs(data[i])
+            
+            if (amplitude < this.noiseGate.threshold) {
+              // 软门限：渐进式衰减而不是硬切断
+              const ratio = Math.pow(amplitude / this.noiseGate.threshold, 2)
+              filtered[i] = data[i] * ratio * this.noiseGate.ratio
+            } else {
+              filtered[i] = data[i]
+            }
+          }
+          
+          return filtered
+        }
+        
+        // 动态范围压缩器
+        applyCompressor(data) {
+          if (!this.compressorState) {
+            this.compressorState = { envelope: 0 }
+          }
+          
+          const filtered = new Float32Array(data.length)
+          
+          for (let i = 0; i < data.length; i++) {
+            const amplitude = Math.abs(data[i])
+            
+            // 包络跟踪
+            const targetEnv = amplitude
+            if (targetEnv > this.compressorState.envelope) {
+              this.compressorState.envelope += (targetEnv - this.compressorState.envelope) * this.compressor.attack
+            } else {
+              this.compressorState.envelope += (targetEnv - this.compressorState.envelope) * this.compressor.release
+            }
+            
+            // 压缩计算
+            let gain = 1.0
+            if (this.compressorState.envelope > this.compressor.threshold) {
+              const excess = this.compressorState.envelope - this.compressor.threshold
+              const compressedExcess = excess / this.compressor.ratio
+              gain = (this.compressor.threshold + compressedExcess) / this.compressorState.envelope
+            }
+            
+            filtered[i] = data[i] * gain
+          }
+          
+          return filtered
         }
         
         calculateVolume(audioData) {
@@ -254,9 +351,15 @@ class AudioWorkletRecorder {
       audio: {
         sampleRate: this.options.sampleRate,
         channelCount: this.options.channels,
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: false
+        echoCancellation: true, // 回声消除
+        noiseSuppression: true, // 噪音抑制
+        autoGainControl: true, // 启用自动增益控制，有助于稳定音量
+        googEchoCancellation: true, // Google 回声消除
+        googAutoGainControl: true, // Google 自动增益控制
+        googNoiseSuppression: true, // Google 噪音抑制
+        googHighpassFilter: true, // 高通滤波器，过滤低频噪音
+        googTypingNoiseDetection: true, // 键盘噪音检测
+        googAudioMirroring: false // 禁用音频镜像
       }
     }
     
@@ -324,6 +427,13 @@ class AudioWorkletRecorder {
         
       case 'audioData':
         this.recordedChunks.push(data)
+        
+        // 调用 onDataAvailable 回调
+        if (this.onDataAvailable && data.audioData) {
+          // 将音频数据转换为 WAV 格式
+          const wavBuffer = this.encodeWAVChunk(data.audioData, data.sampleRate || this.options.sampleRate, data.channels || this.options.channels)
+          this.onDataAvailable(wavBuffer)
+        }
         break
         
       case 'error':
@@ -438,7 +548,47 @@ class AudioWorkletRecorder {
   }
 
   /**
-   * 编码为 WAV 格式
+   * 编码单个音频块为 WAV 格式
+   */
+  encodeWAVChunk(audioData, sampleRate, channels) {
+    const length = audioData.length
+    const buffer = new ArrayBuffer(44 + length * 2)
+    const view = new DataView(buffer)
+    
+    // WAV 文件头
+    const writeString = (offset, string) => {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i))
+      }
+    }
+    
+    writeString(0, 'RIFF')
+    view.setUint32(4, 36 + length * 2, true)
+    writeString(8, 'WAVE')
+    writeString(12, 'fmt ')
+    view.setUint32(16, 16, true)
+    view.setUint16(20, 1, true)
+    view.setUint16(22, channels, true)
+    view.setUint32(24, sampleRate, true)
+    view.setUint32(28, sampleRate * channels * 2, true)
+    view.setUint16(32, channels * 2, true)
+    view.setUint16(34, 16, true)
+    writeString(36, 'data')
+    view.setUint32(40, length * 2, true)
+    
+    // 音频数据
+    let offset = 44
+    for (let i = 0; i < length; i++) {
+      const sample = Math.max(-1, Math.min(1, audioData[i]))
+      view.setInt16(offset, sample * 0x7FFF, true)
+      offset += 2
+    }
+    
+    return buffer
+  }
+
+  /**
+   * 编码为 WAV 格式（完整文件）
    */
   encodeWAV(audioData, sampleRate, channels) {
     const length = audioData.length
@@ -495,7 +645,7 @@ class AudioWorkletRecorder {
       // 获取时域数据
       this.analyserNode.getByteTimeDomainData(this.waveformData)
       
-      console.log('📈 分析数据 - 频域:', this.frequencyData.slice(0, 10), '时域:', this.waveformData.slice(0, 10))
+      // console.log('📈 分析数据 - 频域:', this.frequencyData.slice(0, 10), '时域:', this.waveformData.slice(0, 10))
       
       // 发送分析数据
       if (this.onFrequencyData) {
@@ -697,6 +847,13 @@ class AudioWorkletRecorder {
 
   get isInitialized() {
     return !!this.audioContext && !!this.workletNode
+  }
+
+  /**
+   * 获取音频流
+   */
+  getAudioStream() {
+    return this.mediaStream
   }
 }
 

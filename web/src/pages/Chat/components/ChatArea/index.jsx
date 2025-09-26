@@ -47,15 +47,18 @@ const ChatArea = ({
                 gap: '0.5rem'
               }}
             >
-              <div className={`message-avatar ${message.role}`}>
-                <Avatar 
-                  size={32}
-                  icon={message.role === 'user' ? <UserOutlined /> : <RobotOutlined />}
-                  style={{ fontSize: '0.875rem' }}
-                >
-                  {message.role === 'ai' ? selectedCharacter.avatar : null}
-                </Avatar>
-              </div>
+              { message?.message && (
+                <div className={`message-avatar ${message.role}`}>
+                  <Avatar 
+                    size={32}
+                    icon={message.role === 'user' ? <UserOutlined /> : <RobotOutlined />}
+                    style={{ fontSize: '0.875rem' }}
+                  >
+                    {message.role === 'ai' ? selectedCharacter.avatar : null}
+                  </Avatar>
+                </div>
+              )}
+
               {message.type === 'text' &&(
                 <div>
                   <div className={`message-bubble ${message.role}`}>
