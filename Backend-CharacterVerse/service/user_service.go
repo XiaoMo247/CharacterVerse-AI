@@ -36,24 +36,35 @@ func RegisterUser(username, password string) error {
 	return nil
 }
 
-func LoginUser(username, password string) (string, error) {
+type LoginResponse struct {
+	Token    string `json:"token"`
+	UserID   uint   `json:"user_id"`
+	Username string `json:"username"`
+}
+
+func LoginUser(username, password string) (*LoginResponse, error) {
 	var user model.User
 	result := database.DB.Where("username = ?", username).First(&user)
 	if result.Error != nil {
-		return "", errors.New("用户不存在")
+		return nil, errors.New("用户不存在")
 	}
 
 	// 验证密码
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		return "", errors.New("密码错误")
+		return nil, errors.New("密码错误")
 	}
 
 	// 生成JWT
 	token, err := utils.GenerateToken(user.ID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return token, nil
+	// 返回包含用户信息的响应
+	return &LoginResponse{
+		Token:    token,
+		UserID:   user.ID,
+		Username: user.Username,
+	}, nil
 }

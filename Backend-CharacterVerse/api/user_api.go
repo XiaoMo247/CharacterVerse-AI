@@ -40,11 +40,17 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	token, err := service.LoginUser(req.Username, req.Password)
+	// 获取包含用户信息的响应
+	loginRes, err := service.LoginUser(req.Username, req.Password)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, response.Unauthorized(err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, response.Success(gin.H{"token": token}))
+	// 返回包含用户信息的响应
+	c.JSON(http.StatusOK, response.Success(gin.H{
+		"token":    loginRes.Token,
+		"user_id":  loginRes.UserID,
+		"username": loginRes.Username,
+	}))
 }
