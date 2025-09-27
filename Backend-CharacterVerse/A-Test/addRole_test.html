@@ -193,7 +193,7 @@
     <div class="container">
         <header>
             <h1>角色创建测试工具</h1>
-            <div>增强版 - 支持声音类型获取</div>
+            <div>增强版 - 支持标签和声音类型</div>
         </header>
         
         <div class="content">
@@ -201,7 +201,7 @@
                 <div class="info-title">使用说明</div>
                 <p>1. 输入有效的JWT令牌</p>
                 <p>2. 点击"获取声音类型"加载可用声音</p>
-                <p>3. 填写角色信息</p>
+                <p>3. 填写角色信息（包括新增的标签字段）</p>
                 <p>4. 点击"创建角色"按钮</p>
                 <p><strong>API地址: http://localhost:8080</strong></p>
             </div>
@@ -229,6 +229,23 @@
             <div class="form-group">
                 <label for="description">角色描述:</label>
                 <textarea id="description" placeholder="例如: 一个乐于助人的AI助手"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="tag">角色标签:</label>
+                <select id="tag">
+                    <option value="">-- 选择角色标签 --</option>
+                    <option value="虚拟角色">虚拟角色</option>
+                    <option value="历史角色">历史角色</option>
+                    <option value="电影角色">电影角色</option>
+                    <option value="电视剧角色">电视剧角色</option>
+                    <option value="游戏角色">游戏角色</option>
+                    <option value="动漫角色">动漫角色</option>
+                    <option value="文学角色">文学角色</option>
+                    <option value="神话角色">神话角色</option>
+                    <option value="名人角色">名人角色</option>
+                    <option value="原创角色">原创角色</option>
+                </select>
             </div>
             
             <div class="form-group">
@@ -354,6 +371,7 @@
                 const gender = document.getElementById('gender').value;
                 const age = document.getElementById('age').value;
                 const voiceType = voiceTypeSelect.value;
+                const tag = document.getElementById('tag').value; // 新增标签字段
                 
                 // 验证必填字段
                 if (!jwtToken) {
@@ -363,7 +381,7 @@
                     return;
                 }
                 
-                if (!name || !description || !gender || !age || !voiceType) {
+                if (!name || !description || !gender || !age || !voiceType || !tag) {
                     responseContent.textContent = '错误: 请填写所有必填字段';
                     responseContent.parentElement.classList.add('error');
                     addLog('错误: 缺少必填字段');
@@ -376,7 +394,8 @@
                     description: description,
                     gender: gender,
                     age: parseInt(age),
-                    voice_type: voiceType
+                    voice_type: voiceType,
+                    tag: tag // 新增标签字段
                 };
                 
                 // 显示加载状态

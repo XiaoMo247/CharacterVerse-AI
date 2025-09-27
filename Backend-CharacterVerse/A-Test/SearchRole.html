@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>角色搜索API测试</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f8fa;
+            color: #333;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, textarea:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        .result-container {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .result-header {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        
+        .response-box {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        
+        .error {
+            color: #e74c3c;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+        
+        .api-info {
+            background-color: #e8f4fd;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        
+        .api-info h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        
+        .api-info code {
+            background-color: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>角色搜索API测试</h1>
+        
+        <div class="api-info">
+            <h3>API信息</h3>
+            <p>端点: <code>GET /api/role/search</code></p>
+            <p>参数: <code>keyword</code> (搜索关键字), <code>page</code> (页码), <code>pageSize</code> (每页数量)</p>
+            <p>认证: 需要在Authorization头中提供有效的JWT令牌</p>
+        </div>
+        
+        <div class="form-group">
+            <label for="apiUrl">API基础URL:</label>
+            <input type="text" id="apiUrl" placeholder="http://localhost:8080" value="http://localhost:8080">
+        </div>
+        
+        <div class="form-group">
+            <label for="jwtToken">JWT令牌:</label>
+            <textarea id="jwtToken" rows="3" placeholder="输入您的JWT令牌"></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="keyword">搜索关键字:</label>
+            <input type="text" id="keyword" placeholder="输入角色名称、标签或描述">
+        </div>
+        
+        <div class="form-group">
+            <label for="page">页码:</label>
+            <input type="number" id="page" value="1" min="1">
+        </div>
+        
+        <div class="form-group">
+            <label for="pageSize">每页数量:</label>
+            <input type="number" id="pageSize" value="10" min="1" max="100">
+        </div>
+        
+        <button id="searchBtn">执行搜索</button>
+        
+        <div id="errorMsg" class="error"></div>
+        
+        <div class="result-container" id="resultContainer">
+            <div class="result-header">API响应:</div>
+            <div class="response-box" id="responseBox"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('searchBtn').addEventListener('click', async () => {
+            // 清除之前的错误和结果
+            document.getElementById('errorMsg').textContent = '';
+            document.getElementById('resultContainer').style.display = 'none';
+            
+            // 获取输入值
+            const baseUrl = document.getElementById('apiUrl').value.trim();
+            const jwtToken = document.getElementById('jwtToken').value.trim();
+            const keyword = document.getElementById('keyword').value.trim();
+            const page = document.getElementById('page').value;
+            const pageSize = document.getElementById('pageSize').value;
+            
+            // 验证输入
+            if (!baseUrl) {
+                showError('请输入API基础URL');
+                return;
+            }
+            
+            if (!jwtToken) {
+                showError('请输入JWT令牌');
+                return;
+            }
+            
+            if (!keyword) {
+                showError('请输入搜索关键字');
+                return;
+            }
+            
+            try {
+                // 构建请求URL
+                const url = new URL(`${baseUrl}/api/role/search`);
+                url.searchParams.append('keyword', keyword);
+                url.searchParams.append('page', page);
+                url.searchParams.append('pageSize', pageSize);
+                
+                // 发送请求
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${jwtToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                // 处理响应
+                const data = await response.json();
+                
+                // 显示结果
+                document.getElementById('responseBox').textContent = JSON.stringify(data, null, 2);
+                document.getElementById('resultContainer').style.display = 'block';
+                
+            } catch (error) {
+                showError(`请求失败: ${error.message}`);
+            }
+        });
+        
+        function showError(message) {
+            document.getElementById('errorMsg').textContent = message;
+        }
+    </script>
+</body>
+</html>
