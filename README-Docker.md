@@ -28,6 +28,7 @@ docker-compose up -d --build
 | 前端 | characterverse-frontend | 5173 | React应用 |
 | 后端 | characterverse-backend | 8080 | Go API服务 + WebSocket |
 | 数据库 | characterverse-mysql | 3306 | MySQL数据存储 |
+| Redis | characterverse-redis | 6379 | Redis缓存服务 |
 
 ## 🛠️ 常用命令
 

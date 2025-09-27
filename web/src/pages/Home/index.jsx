@@ -1,5 +1,6 @@
-import { useEffect } from 'react'
-import { Row, Col, Button, Tag, Space } from 'antd'
+import { useEffect, useCallback, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Row, Col, Button, Tag, Space, Spin, Empty } from 'antd'
 import { 
   PlusOutlined, 
   MinusOutlined, 
@@ -11,139 +12,109 @@ import { PageContainer, FeatureCard, StatCard, CharacterCard } from '../../compo
 import useStore from '../../store/useStore'
 import { SearchBar } from './components'
 import useHomeStore from './store/useHomeStore'
-import { searchService } from './server/homeService'
+import { searchService, searchList } from './server/homeService'
+import useChatStore from '../Chat/store/useChatStore'
 
 const Home = () => {
+  const navigate = useNavigate()
   const { count, increment, decrement, reset, isDark, toggleTheme } = useStore()
+  const { setPendingCharacter } = useChatStore()
   const { 
     searchResults, 
     isSearching, 
     setSearching, 
     setSearchResults, 
-    clearSearch 
+    clearSearch,
+    // 角色列表相关状态
+    characterList,
+    isLoading,
+    hasMore,
+    currentPage,
+    pageSize,
+    total,
+    setLoading,
+    setCharacterList,
+    setListData,
+    resetCharacterList,
+    loadNextPage
   } = useHomeStore()
 
-  const features = [
-    {
-      icon: '👤',
-      title: '角色管理',
-      description: '创建和自定义您的AI角色，设置独特的性格和特点'
-    },
-    {
-      icon: '💬',
-      title: '智能对话',
-      description: '与您的AI角色进行自然流畅的对话交流'
-    },
-    {
-      icon: '🎨',
-      title: '个性化定制',
-      description: '丰富的头像选择和性格设定，打造独一无二的角色'
-    }
-  ]
+  const loadingRef = useRef(null)
 
-  const steps = [
-    {
-      number: '1',
-      title: '创建角色',
-      description: '前往"个人角色管理"页面创建您的第一个AI角色'
-    },
-    {
-      number: '2',
-      title: '开始聊天',
-      description: '在"聊天"页面选择角色并开始有趣的对话'
-    },
-    {
-      number: '3',
-      title: '享受体验',
-      description: '探索不同角色的独特个性和对话风格'
+  // 获取角色列表
+  const fetchCharacterList = useCallback(async (page = 1, isAppend = false) => {
+    if (isLoading) return
+    
+    setLoading(true)
+    try {
+      const params = {
+        page,
+        page_size: pageSize
+      }
+      const response = await searchList(params)
+      
+      if (response && response.data) {
+        const { list, total, pages, has_more, page: currentPageNum } = response.data
+        
+        setCharacterList(list || [], isAppend)
+        setListData({
+          total,
+          pages,
+          has_more,
+          page: currentPageNum
+        })
+      }
+    } catch (error) {
+      console.error('获取角色列表失败:', error)
+    } finally {
+      setLoading(false)
     }
-  ]
+  }, [isLoading, pageSize, setLoading, setCharacterList, setListData])
 
-  const techStack = [
-    'React 18', 'Vite', 'React Router', 'Zustand', 'Ant Design', 'Node.js'
-  ]
-
-  // 推荐角色数据
-  const recommendedCharacters = [
-    {
-      id: 1,
-      name: '智能助手',
-      avatar: '🤖',
-      personality: '专业助手',
-      description: '专业的AI助手，能够回答各种问题并提供帮助',
-      createdAt: '2024-01-15'
-    },
-    {
-      id: 2,
-      name: '创意作家',
-      avatar: '✍️',
-      personality: '创意型',
-      description: '富有创造力的写作助手，擅长故事创作和文案撰写',
-      createdAt: '2024-01-20'
-    },
-    {
-      id: 3,
-      name: '语言导师',
-      avatar: '🌎',
-      personality: '教育型',
-      description: '多语言学习助手，提供语言练习和语法指导',
-      createdAt: '2024-01-25'
-    },
-    {
-      id: 4,
-      name: '心理咨询师',
-      avatar: '💭',
-      personality: '关怀型',
-      description: '提供情感支持和心理疏导的AI伙伴',
-      createdAt: '2024-02-01'
-    },
-    {
-      id: 5,
-      name: '技术专家',
-      avatar: '💻',
-      personality: '技术型',
-      description: '编程和技术问题解答专家',
-      createdAt: '2024-02-05'
-    },
-    {
-      id: 6,
-      name: '娱乐伙伴',
-      avatar: '🎮',
-      personality: '娱乐型',
-      description: '游戏、电影、音乐推荐和讨论伙伴',
-      createdAt: '2024-02-10'
+  // 加载更多数据
+  const loadMore = useCallback(() => {
+    if (hasMore && !isLoading) {
+      const nextPage = currentPage + 1
+      loadNextPage()
+      fetchCharacterList(nextPage, true)
     }
-  ]
+  }, [hasMore, isLoading, currentPage, loadNextPage, fetchCharacterList])
 
-  const counterActions = [
-    {
-      text: '-',
-      icon: <MinusOutlined />,
-      onClick: decrement,
-      type: 'default'
-    },
-    {
-      text: '+',
-      icon: <PlusOutlined />,
-      onClick: increment,
-      type: 'primary'
-    },
-    {
-      text: '重置',
-      icon: <ReloadOutlined />,
-      onClick: reset,
-      danger: true
-    }
-  ]
+  // 懒加载监听
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoading) {
+          loadMore()
+        }
+      },
+      { threshold: 0.1 }
+    )
 
-  const themeActions = [
-    {
-      text: '切换主题',
-      icon: isDark ? <SunOutlined /> : <MoonOutlined />,
-      onClick: toggleTheme,
-      type: 'primary'
+    if (loadingRef.current) {
+      observer.observe(loadingRef.current)
     }
-  ]
+
+    return () => {
+      if (loadingRef.current) {
+        observer.unobserve(loadingRef.current)
+      }
+    }
+  }, [hasMore, isLoading, loadMore])
+
+  // 初始化加载数据
+  useEffect(() => {
+    resetCharacterList()
+    fetchCharacterList(1)
+  }, [])
+
+  // 处理聊天按钮点击
+  const handleChat = useCallback((character) => {
+    // 将角色信息存储到 ChatStore 中
+    setPendingCharacter(character)
+    // 跳转到聊天页面
+    navigate('/chat')
+  }, [setPendingCharacter, navigate])
 
   // 搜索处理函数
   const handleSearch = async (value) => {
@@ -179,40 +150,58 @@ const Home = () => {
         placeholder="输入关键词搜索角色、对话、功能..."
       />
 
-      {/* 推荐角色展示区域 */}
+      {/* 角色展示区域 */}
       <div style={{ marginTop: '40px' }}>
-        <h2 style={{ textAlign: 'center', marginBottom: '30px', fontSize: '24px', fontWeight: '600' }}>
-          推荐角色
-        </h2>
         
-        {/* 热门角色 */}
+        {/* 角色列表 */}
         <div style={{ marginBottom: '40px' }}>
-          <h3 style={{ marginBottom: '20px', color: '#1890ff', fontSize: '18px' }}>🔥 热门角色</h3>
-          <Row gutter={[16, 16]}>
-            {recommendedCharacters.slice(0, 3).map(character => (
-              <Col key={character.id} xs={24} sm={12} md={8}>
-                <CharacterCard 
-                  character={character}
-                  showActions={true}
+          <h3 style={{ marginBottom: '20px', color: '#1890ff', fontSize: '18px' }}>
+            🔥 角色列表 {total > 0 && <span style={{ fontSize: '14px', color: '#666' }}>({total}个角色)</span>}
+          </h3>
+          
+          {characterList.length > 0 ? (
+            <>
+              <Row gutter={[16, 16]}>
+                {characterList.map(character => (
+                  <Col key={character.id} xs={24} sm={12} md={8} lg={6}>
+                    <CharacterCard 
+                      character={character}
+                      showActions={true}
+                      onChat={handleChat}
+                    />
+                  </Col>
+                ))}
+              </Row>
+              
+              {/* 懒加载触发器 */}
+              <div 
+                ref={loadingRef}
+                style={{ 
+                  textAlign: 'center', 
+                  marginTop: '20px',
+                  padding: '20px'
+                }}
+              >
+                {isLoading && (
+                  <Spin size="large" tip="加载中..." />
+                )}
+                {!hasMore && characterList.length > 0 && (
+                  <div style={{ color: '#999' }}>已加载全部角色</div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              {isLoading ? (
+                <Spin size="large" tip="加载中..." />
+              ) : (
+                <Empty 
+                  description="暂无角色数据"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
                 />
-              </Col>
-            ))}
-          </Row>
-        </div>
-
-        {/* 按标签分类推荐 */}
-        <div style={{ marginBottom: '40px' }}>
-          <h3 style={{ marginBottom: '20px', color: '#52c41a', fontSize: '18px' }}>🏷️ 按标签推荐</h3>
-          <Row gutter={[16, 16]}>
-            {recommendedCharacters.slice(3).map(character => (
-              <Col key={character.id} xs={24} sm={12} md={8}>
-                <CharacterCard 
-                  character={character}
-                  showActions={true}
-                />
-              </Col>
-            ))}
-          </Row>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

@@ -6,6 +6,15 @@ const useHomeStore = create((set, get) => ({
   isSearching: false,
   searchKeyword: '',
 
+  // 角色列表相关状态
+  characterList: [],
+  isLoading: false,
+  hasMore: false,
+  currentPage: 1,
+  pageSize: 10,
+  total: 0,
+  totalPages: 0,
+
   // 统计数据
   stats: {
     totalCharacters: 3,
@@ -26,6 +35,34 @@ const useHomeStore = create((set, get) => ({
     searchKeyword: '',
     isSearching: false 
   }),
+
+  // 角色列表功能
+  setLoading: (loading) => set({ isLoading: loading }),
+  
+  setCharacterList: (list, isAppend = false) => set((state) => ({
+    characterList: isAppend ? [...state.characterList, ...list] : list
+  })),
+  
+  setListData: (data) => set({
+    total: data.total,
+    totalPages: data.pages,
+    hasMore: data.has_more,
+    currentPage: data.page
+  }),
+
+  // 重置角色列表
+  resetCharacterList: () => set({
+    characterList: [],
+    currentPage: 1,
+    hasMore: false,
+    total: 0,
+    totalPages: 0
+  }),
+
+  // 加载下一页
+  loadNextPage: () => set((state) => ({
+    currentPage: state.currentPage + 1
+  })),
 
   // 更新统计数据
   updateStats: (newStats) => set((state) => ({

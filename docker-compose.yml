@@ -1,3 +1,9 @@
+# Docker Compose 配置文件
+# 注意：如果遇到 Docker API 版本问题，请尝试：
+# 1. 重启 Docker Desktop
+# 2. 在 Docker Desktop 设置中检查 "Use Docker Compose V2"
+# 3. 或者降级到 Docker Desktop 4.25.x 版本
+
 services:
   # MySQL数据库
   mysql:
@@ -13,6 +19,25 @@ services:
       - mysql_data:/var/lib/mysql
     networks:
       - characterverse-network
+      
+  # Redis服务
+  redis:
+    image: redis:alpine
+    container_name: characterverse-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=6
+    networks:
+      - characterverse-network
+    restart: unless-stopped
+    platform: linux/amd64
 
   # Go后端服务
   backend:
@@ -34,8 +59,13 @@ services:
       - JWT_SECRET=LMLANDDLH
       - QINIU_API_KEY=sk-c4065b42ac5791ee06c248816a5decadfe5d075a8f5329a7f3e8ff2ab54f2a38
       - QINIU_MODEL_NAME=deepseek/deepseek-v3.1-terminus
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=6
     depends_on:
       - mysql
+      - redis
     networks:
       - characterverse-network
 
@@ -60,6 +90,7 @@ services:
 
 volumes:
   mysql_data:
+  redis_data:
 
 networks:
   characterverse-network:

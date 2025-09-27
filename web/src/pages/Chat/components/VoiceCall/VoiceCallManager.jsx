@@ -663,7 +663,7 @@ export const VoiceCallProvider = ({ children }) => {
     // 2. 或者距离上次缓存超过800ms（降低时间阈值，减少延迟）
     // 3. 或者存在下一个播放时间、缓存队列>0、播放队列为空（优化播放调度）
     const shouldFlush = 
-      cacheLength >= 3 || 
+      cacheLength >= 1 || 
       (cacheLength > 0 && timeSinceLastCache > 800) ||
       (nextAudioScheduledTimeRef.current && cacheLength > 0 && playbackQueueRef.current.length === 0)
     

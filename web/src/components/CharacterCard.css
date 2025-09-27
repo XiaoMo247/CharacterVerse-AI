@@ -16,8 +16,25 @@
   margin-top: var(--spacing-sm);
 }
 
-.personality-tag {
-  margin-bottom: var(--spacing-sm);
+.personality-tag,
+.gender-tag,
+.age-tag,
+.voice-tag {
+  margin-bottom: var(--spacing-xs);
+  margin-right: var(--spacing-xs);
+}
+
+.gender-tag {
+  border-radius: 12px;
+}
+
+.age-tag {
+  border-radius: 12px;
+}
+
+.voice-tag {
+  border-radius: 12px;
+  font-size: 11px;
 }
 
 .character-description {

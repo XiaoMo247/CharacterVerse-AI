@@ -57,7 +57,7 @@
   align-items: center;
   width: 100%;
   position: relative;
-  justify-content: center;
+  /* justify-content: center; */
 }
 
 /* 播放按钮 */
@@ -94,7 +94,7 @@
 }
 
 /* 波形动画容器 */
-.waveform-container {
+.waveform-container1 {
   flex: 1;
   height: 24px;
   display: flex;
@@ -103,7 +103,7 @@
   min-width: 60px;
 }
 
-.waveform {
+.waveform1 {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -111,7 +111,7 @@
   height: 100%;
 }
 
-.waveform-bar {
+.waveform-barss {
   width: 3px;
   height: 4px;
   background: currentColor;
@@ -120,28 +120,28 @@
   transition: all 0.2s ease;
 }
 
-.voice-bubble.own .waveform-bar {
+.voice-bubble.own .waveform-barss {
   background: rgba(255, 255, 255, 0.8);
 }
 
-.voice-bubble.other .waveform-bar {
+.voice-bubble.other .waveform-barss {
   background: rgba(24, 144, 255, 0.8);
 }
 
 /* 播放时的波形动画 */
-.waveform.playing .waveform-bar {
+.waveform1.playing .waveform-barss {
   opacity: 1;
   animation: waveform-bounce 1.2s ease-in-out infinite;
 }
 
-.waveform.playing .waveform-bar:nth-child(1) { animation-delay: 0s; }
-.waveform.playing .waveform-bar:nth-child(2) { animation-delay: 0.1s; }
-.waveform.playing .waveform-bar:nth-child(3) { animation-delay: 0.2s; }
-.waveform.playing .waveform-bar:nth-child(4) { animation-delay: 0.3s; }
-.waveform.playing .waveform-bar:nth-child(5) { animation-delay: 0.4s; }
-.waveform.playing .waveform-bar:nth-child(6) { animation-delay: 0.3s; }
-.waveform.playing .waveform-bar:nth-child(7) { animation-delay: 0.2s; }
-.waveform.playing .waveform-bar:nth-child(8) { animation-delay: 0.1s; }
+.waveform1.playing .waveform-barss:nth-child(1) { animation-delay: 0s; }
+.waveform1.playing .waveform-barss:nth-child(2) { animation-delay: 0.1s; }
+.waveform1.playing .waveform-barss:nth-child(3) { animation-delay: 0.2s; }
+.waveform1.playing .waveform-barss:nth-child(4) { animation-delay: 0.3s; }
+.waveform1.playing .waveform-bars:nth-child(5) { animation-delay: 0.4s; }
+.waveform1.playing .waveform-barss:nth-child(6) { animation-delay: 0.3s; }
+.waveform1.playing .waveform-barss:nth-child(7) { animation-delay: 0.2s; }
+.waveform1.playing .waveform-barss:nth-child(8) { animation-delay: 0.1s; }
 
 @keyframes waveform-bounce {
   0%, 100% { 
@@ -268,7 +268,7 @@
   border-color: rgba(64, 169, 255, 0.2);
 }
 
-[data-theme="dark"] .voice-bubble.other .waveform-bar {
+[data-theme="dark"] .voice-bubble.other .waveform-barss {
   background: rgba(64, 169, 255, 0.8);
 }
 

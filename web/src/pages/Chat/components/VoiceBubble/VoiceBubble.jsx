@@ -26,7 +26,7 @@ const VoiceBubble = ({
   const [audioSrc, setAudioSrc] = useState(null)
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [waveform, setWaveform] = useState(new Array(6))
+  const [waveform, setWaveform] = useState(new Array(8))
 
   const audioRef = useRef(null)
   const progressRef = useRef(null)
@@ -169,12 +169,12 @@ const VoiceBubble = ({
         </div>
         {/* 波形动画区域 */}
         {showWaveform && (
-          <div className="waveform-container">
-            <div className={`waveform ${isPlaying ? 'playing' : ''}`}>
+          <div className="waveform-container1">
+            <div className={`waveform1 ${isPlaying ? 'playing' : ''}`}>
               {[...waveform].map((_, index) => (
                 <div 
                   key={index}
-                  className="waveform-bar"
+                  className="waveform-barss"
                   style={{
                     animationDelay: `${index * 0.1}s`
                   }}
