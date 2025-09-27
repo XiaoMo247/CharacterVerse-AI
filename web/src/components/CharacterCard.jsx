@@ -15,6 +15,7 @@ const CharacterCard = ({
   ...props 
 }) => {
   const actions = showActions ? [
+    // TODO: 添加收藏按钮
     onToggleFavorite && (
       <Button 
         key="favorite"
@@ -24,6 +25,7 @@ const CharacterCard = ({
         size="small"
       />
     ),
+    // TODO: 添加编辑按钮
     onEdit && (
       <Button 
         key="edit"
@@ -33,6 +35,7 @@ const CharacterCard = ({
         size="small"
       />
     ),
+    // TODO: 添加聊天按钮
     onChat && (
       <Button 
         key="chat"
@@ -44,6 +47,7 @@ const CharacterCard = ({
         聊天
       </Button>
     ),
+    // TODO: 添加删除按钮
     onDelete && (
       <Popconfirm
         key="delete"

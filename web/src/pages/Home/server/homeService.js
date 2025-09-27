@@ -1,5 +1,5 @@
 // Home页面相关的API服务
-import { http } from '../../../utils/index'
+import { get } from '../../../utils/request'
 
 // 模拟数据
 const mockData = [
@@ -104,7 +104,6 @@ export const recommendService = {
 }
 
 export const searchList = async(params) => {
-    const { get } = await import('../../../utils/request')
     const res = await get('/role/list', params)
     return res
 }

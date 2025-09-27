@@ -82,15 +82,17 @@ export const useAuthStore = create((set, get) => {
           // 登录验证
          const { data } = await userLogin({username, password})
          const token = data.token
+         const user_id = data.user_id
             set({
               user: {
                 username,
+                user_id: data?.user_id,
               },
               token,
               isAuthenticated: true,
               loading: false
             })
-            const authData = { token, username }
+            const authData = { token, username ,user_id}
             if (remember) {
               saveAuth(authData)
             }

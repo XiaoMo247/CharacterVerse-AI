@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 // 创建 axios 实例
-const request = axios.create({
+ export const request = axios.create({
   baseURL:  'http://localhost:8080/api',
   timeout: 10000, // 请求超时时间
 })
@@ -139,6 +139,3 @@ export const get = (url, params = {}) => {
     params
   })
 }
-
-// 导出 axios 实例和封装的方法
-export default request 

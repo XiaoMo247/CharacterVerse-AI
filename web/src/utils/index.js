@@ -4,4 +4,4 @@ export * from './helpers'
 // SSE 相关
 export * from './sse'
 
-export { default as http } from './request'
+export  * from './request'

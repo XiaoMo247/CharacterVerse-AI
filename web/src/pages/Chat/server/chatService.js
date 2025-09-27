@@ -1,4 +1,4 @@
-import http from "../../../utils/request";
+import { request } from "../../../utils/request";
 
 // AI回复模板
 const AI_RESPONSES = {

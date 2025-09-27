@@ -1,18 +1,14 @@
-import http from "../utils/request";
+import { request} from "../utils/request";
 
 // 用户认证相关接口
 export const userRegister = (params) => {
-    return http.post('/user/register', params)
+    return request.post('/user/register', params)
 }
 
 export const userLogin = (params) => {
-    return http.post('/user/login', params)
+    return request.post('/user/login', params)
 }
 
-// 角色管理相关接口（需要认证）
-export const addRole = (params) => {
-    return http.post('/user/addRole', params)
-}
 
 // WebSocket 聊天连接
 // 使用 StreamingChat 类来处理 WebSocket 连接
