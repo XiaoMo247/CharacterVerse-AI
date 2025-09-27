@@ -23,7 +23,7 @@ var validGenders = map[string]bool{
 	"男": true, "女": true, "其他": true, "未知": true,
 }
 
-func AddRole(userID uint, name, description, gender string, age int, voiceType string) (uint, error) {
+func AddRole(userID uint, name, description, gender string, age int, voiceType, tag string) (uint, error) {
 	// 参数校验集中处理
 	if name == "" {
 		return 0, errors.New("角色名称不能为空")
@@ -38,7 +38,19 @@ func AddRole(userID uint, name, description, gender string, age int, voiceType s
 		return 0, errors.New("无效的声音类型")
 	}
 
-	// 先创建角色（不带头像）
+	// 验证标签是否有效
+	validTag := false
+	for _, t := range model.ValidRoleTags {
+		if t == tag {
+			validTag = true
+			break
+		}
+	}
+	if !validTag {
+		return 0, fmt.Errorf("无效的角色标签，有效标签为: %v", model.ValidRoleTags)
+	}
+
+	// 创建新角色（包含标签）
 	newRole := model.Role{
 		Name:        name,
 		Description: description,
@@ -46,6 +58,7 @@ func AddRole(userID uint, name, description, gender string, age int, voiceType s
 		Gender:      gender,
 		Age:         age,
 		VoiceType:   voiceType,
+		Tag:         tag, // 设置标签
 	}
 
 	if err := database.DB.Create(&newRole).Error; err != nil {
@@ -392,8 +405,42 @@ func GetRoles(pagination model.Pagination) (*model.PaginatedResult, error) {
 	return paginateRoles(database.DB, pagination)
 }
 
-func GetRolesByUserID(userID uint, pagination model.Pagination) (*model.PaginatedResult, error) {
-	query := database.DB.Where("user_id = ?", userID)
+// 通过用户名模糊查询角色
+func GetRolesByUsername(username string, pagination model.Pagination) (*model.PaginatedResult, error) {
+	// 关联用户表进行模糊查询
+	query := database.DB.
+		Joins("JOIN users ON users.id = roles.user_id").
+		Where("users.username LIKE ?", "%"+username+"%")
+
+	return paginateRoles(query, pagination)
+}
+
+// 通过标签模糊查询角色
+func GetRolesByTag(tag string, pagination model.Pagination) (*model.PaginatedResult, error) {
+	// 使用LIKE进行模糊查询
+	query := database.DB.
+		Where("tag LIKE ?", "%"+tag+"%")
+
+	return paginateRoles(query, pagination)
+}
+
+// 通过关键字模糊查询角色（按照角色名称、用户名、标签、描述的顺序）
+func SearchRolesByKeyword(keyword string, pagination model.Pagination) (*model.PaginatedResult, error) {
+	// 构建基础查询
+	baseQuery := database.DB.Model(&model.Role{})
+
+	// 使用OR条件组合多个字段的模糊查询
+	query := baseQuery.Where(
+		"name LIKE ? OR "+
+			"id IN (SELECT roles.id FROM roles JOIN users ON users.id = roles.user_id WHERE users.username LIKE ?) OR "+
+			"tag LIKE ? OR "+
+			"description LIKE ?",
+		"%"+keyword+"%",
+		"%"+keyword+"%",
+		"%"+keyword+"%",
+		"%"+keyword+"%",
+	)
+
 	return paginateRoles(query, pagination)
 }
 
@@ -436,6 +483,7 @@ func UpdateRole(roleID, userID uint, updates map[string]interface{}) error {
 		"gender":      true,
 		"age":         true,
 		"voice_type":  true,
+		"tag":         true, // 新增标签字段
 	}
 
 	// 过滤无效字段
@@ -466,6 +514,20 @@ func UpdateRole(roleID, userID uint, updates map[string]interface{}) error {
 	if voiceType, ok := cleanUpdates["voice_type"]; ok {
 		if _, valid := model.GetVoiceInfo(voiceType.(string)); !valid {
 			return errors.New("无效的声音类型")
+		}
+	}
+
+	// 验证标签（如果更新）
+	if tag, ok := cleanUpdates["tag"]; ok {
+		validTag := false
+		for _, t := range model.ValidRoleTags {
+			if t == tag.(string) {
+				validTag = true
+				break
+			}
+		}
+		if !validTag {
+			return fmt.Errorf("无效的角色标签，有效标签为: %v", model.ValidRoleTags)
 		}
 	}
 

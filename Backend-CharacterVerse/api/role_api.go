@@ -15,6 +15,7 @@ type AddRoleRequest struct {
 	Gender      string `json:"gender" binding:"required,oneof=男 女 其他 未知"`
 	Age         int    `json:"age" binding:"required,min=0,max=120"`
 	VoiceType   string `json:"voice_type" binding:"required"`
+	Tag         string `json:"tag" binding:"required"` // 新增标签字段
 }
 
 func AddRole(c *gin.Context) {
@@ -38,6 +39,7 @@ func AddRole(c *gin.Context) {
 		req.Gender,
 		req.Age,
 		req.VoiceType,
+		req.Tag, // 新增标签参数
 	)
 	if err != nil {
 		resp := response.InternalError(err.Error())
@@ -49,19 +51,34 @@ func AddRole(c *gin.Context) {
 	c.JSON(resp.Code, resp)
 }
 
-// 公共分页参数处理
+// 公共分页参数处理（修复版本）
 func parsePagination(c *gin.Context) (model.Pagination, *response.Response) {
 	var pagination model.Pagination
-	if err := c.ShouldBindQuery(&pagination); err != nil {
-		return pagination, response.BadRequest("分页参数错误: " + err.Error())
+
+	// 手动获取参数（解决大小写问题）
+	if pageStr := c.Query("page"); pageStr != "" {
+		if page, err := strconv.Atoi(pageStr); err == nil {
+			pagination.Page = page
+		}
+	}
+
+	if pageSizeStr := c.Query("pageSize"); pageSizeStr != "" {
+		if pageSize, err := strconv.Atoi(pageSizeStr); err == nil {
+			pagination.PageSize = pageSize
+		}
 	}
 
 	// 设置默认值
-	if pagination.Page == 0 {
+	if pagination.Page <= 0 {
 		pagination.Page = 1
 	}
-	if pagination.PageSize == 0 {
+	if pagination.PageSize <= 0 {
 		pagination.PageSize = 10
+	}
+
+	// 添加最大限制
+	if pagination.PageSize > 100 {
+		pagination.PageSize = 100
 	}
 
 	return pagination, nil
@@ -84,22 +101,75 @@ func ListRoles(c *gin.Context) {
 	c.JSON(response.Success(result).Code, response.Success(result))
 }
 
-func GetRolesByUserID(c *gin.Context) {
+// 通过用户名模糊查询角色
+func GetRolesByUsername(c *gin.Context) {
 	pagination, resp := parsePagination(c)
 	if resp != nil {
 		c.JSON(resp.Code, resp)
 		return
 	}
 
-	userIDStr := c.Param("user_id")
-	userID, err := strconv.ParseUint(userIDStr, 10, 32)
-	if err != nil || userID == 0 {
-		resp := response.BadRequest("无效的用户ID")
+	// 从查询参数获取用户名
+	username := c.Query("username")
+	if username == "" {
+		resp := response.BadRequest("必须提供用户名")
 		c.JSON(resp.Code, resp)
 		return
 	}
 
-	result, err := service.GetRolesByUserID(uint(userID), pagination)
+	result, err := service.GetRolesByUsername(username, pagination)
+	if err != nil {
+		resp := response.InternalError(err.Error())
+		c.JSON(resp.Code, resp)
+		return
+	}
+
+	c.JSON(response.Success(result).Code, response.Success(result))
+}
+
+// 通过标签模糊查询角色
+func GetRolesByTag(c *gin.Context) {
+	pagination, resp := parsePagination(c)
+	if resp != nil {
+		c.JSON(resp.Code, resp)
+		return
+	}
+
+	// 从查询参数获取标签
+	tag := c.Query("tag")
+	if tag == "" {
+		resp := response.BadRequest("必须提供标签")
+		c.JSON(resp.Code, resp)
+		return
+	}
+
+	result, err := service.GetRolesByTag(tag, pagination)
+	if err != nil {
+		resp := response.InternalError(err.Error())
+		c.JSON(resp.Code, resp)
+		return
+	}
+
+	c.JSON(response.Success(result).Code, response.Success(result))
+}
+
+// 通过关键字模糊查询角色
+func SearchRoles(c *gin.Context) {
+	pagination, resp := parsePagination(c)
+	if resp != nil {
+		c.JSON(resp.Code, resp)
+		return
+	}
+
+	// 从查询参数获取关键字
+	keyword := c.Query("keyword")
+	if keyword == "" {
+		resp := response.BadRequest("必须提供关键字")
+		c.JSON(resp.Code, resp)
+		return
+	}
+
+	result, err := service.SearchRolesByKeyword(keyword, pagination)
 	if err != nil {
 		resp := response.InternalError(err.Error())
 		c.JSON(resp.Code, resp)
