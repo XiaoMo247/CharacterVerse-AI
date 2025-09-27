@@ -5,11 +5,13 @@ import (
 	"Backend-CharacterVerse/model"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"gorm.io/gorm"
 )
 
 type HistoryService struct{}
@@ -20,11 +22,19 @@ const (
 
 // RecentMessage 用于返回最近消息的结构体
 type RecentMessage struct {
-	RoleID      uint      `json:"role_id"`
-	Content     string    `json:"content"`
-	CreatedAt   time.Time `json:"created_at"`
-	MessageType string    `json:"message_type"`       // text/voice/voice_call
-	Duration    string    `json:"duration,omitempty"` // 语音通话时长
+	RoleID      uint       `json:"role_id"`
+	Content     string     `json:"content"`
+	CreatedAt   time.Time  `json:"created_at"`
+	MessageType string     `json:"message_type"`       // text/voice/voice_call
+	Duration    string     `json:"duration,omitempty"` // 语音通话时长
+	Role        model.Role `json:"role"`               // 新增：完整的角色信息
+}
+
+// RoleHistoryResult 用于返回特定角色的聊天记录和角色信息
+type RoleHistoryResult struct {
+	RoleInfo       model.Role               `json:"role_info"`       // 角色完整信息
+	TextHistories  []model.ChatHistory      `json:"text_histories"`  // 文本聊天记录
+	VoiceHistories []model.VoiceChatHistory `json:"voice_histories"` // 语音聊天记录
 }
 
 // 生成缓存键
@@ -108,43 +118,58 @@ func (s *HistoryService) GetAllHistories(userID uint) ([]model.ChatHistory, []mo
 	return textHistories, voiceHistories, nil
 }
 
-// 获取特定角色聊天记录（带缓存）
-func (s *HistoryService) GetHistoriesByRole(userID, roleID uint) ([]model.ChatHistory, []model.VoiceChatHistory, error) {
+// 获取特定角色聊天记录及角色信息（带缓存）
+func (s *HistoryService) GetHistoriesByRole(userID, roleID uint) (*RoleHistoryResult, error) {
 	cacheKey := s.roleHistoriesKey(userID, roleID)
 
 	// 尝试从缓存获取
-	var cacheData struct {
-		Text  []model.ChatHistory
-		Voice []model.VoiceChatHistory
-	}
-
+	var cacheData RoleHistoryResult
 	if s.getFromCache(cacheKey, &cacheData) {
-		return cacheData.Text, cacheData.Voice, nil
+		return &cacheData, nil
 	}
 
 	// 缓存未命中，从数据库查询
 	db := database.DB
-	var textHistories []model.ChatHistory
-	if err := db.Where("user_id = ? AND role_id = ?", userID, roleID).Find(&textHistories).Error; err != nil {
-		return nil, nil, err
+
+	// 1. 获取角色信息
+	var role model.Role
+	if err := db.First(&role, roleID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("角色不存在")
+		}
+		return nil, err
 	}
 
+	// 2. 获取文本聊天记录
+	var textHistories []model.ChatHistory
+	if err := db.Where("user_id = ? AND role_id = ?", userID, roleID).
+		Order("created_at DESC").
+		Find(&textHistories).Error; err != nil {
+		return nil, err
+	}
+
+	// 3. 获取语音聊天记录
 	var voiceHistories []model.VoiceChatHistory
-	if err := db.Where("user_id = ? AND role_id = ?", userID, roleID).Find(&voiceHistories).Error; err != nil {
-		return nil, nil, err
+	if err := db.Where("user_id = ? AND role_id = ?", userID, roleID).
+		Order("created_at DESC").
+		Find(&voiceHistories).Error; err != nil {
+		return nil, err
+	}
+
+	// 构建结果
+	result := RoleHistoryResult{
+		RoleInfo:       role,
+		TextHistories:  textHistories,
+		VoiceHistories: voiceHistories,
 	}
 
 	// 保存到缓存
-	cacheData = struct {
-		Text  []model.ChatHistory
-		Voice []model.VoiceChatHistory
-	}{Text: textHistories, Voice: voiceHistories}
-	s.setToCache(cacheKey, cacheData)
+	s.setToCache(cacheKey, result)
 
-	return textHistories, voiceHistories, nil
+	return &result, nil
 }
 
-// GetRecentMessages 获取用户与所有角色的最近一条消息
+// GetRecentMessages 获取用户与所有角色的最近一条消息及角色信息
 func (s *HistoryService) GetRecentMessages(userID uint) ([]RecentMessage, error) {
 	cacheKey := s.recentMessagesKey(userID)
 
@@ -217,7 +242,12 @@ func (s *HistoryService) GetRecentMessages(userID uint) ([]RecentMessage, error)
 
 	// 转换为切片
 	var recentMessages []RecentMessage
-	for _, msg := range recentByRole {
+	for roleID, msg := range recentByRole {
+		// 获取角色信息
+		var role model.Role
+		if err := db.First(&role, roleID).Error; err == nil {
+			msg.Role = role
+		}
 		recentMessages = append(recentMessages, msg)
 	}
 
