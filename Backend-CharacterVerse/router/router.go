@@ -36,8 +36,8 @@ func RouterInit(r *gin.Engine) {
 
 		historyGroup := auth.Group("/history")
 		{
-			historyGroup.GET("/user/:user_id", api.GetAllChatHistories)
-			historyGroup.GET("/user/:user_id/role/:role_id", api.GetChatHistoryByRole)
+			historyGroup.GET("/all", api.GetAllChatHistories)
+			historyGroup.GET("/role/:role_id", api.GetChatHistoryByRole)
 		}
 	}
 }

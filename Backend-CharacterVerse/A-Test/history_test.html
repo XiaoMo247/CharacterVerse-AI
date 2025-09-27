@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>聊天记录API测试</title>
     <style>
         body {
@@ -9,213 +10,201 @@
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f5f5f5;
+            background-color: #f5f7fa;
+            color: #333;
         }
         .container {
             background-color: white;
-            padding: 25px;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
         h1 {
             color: #2c3e50;
             text-align: center;
             margin-bottom: 30px;
         }
-        .section {
-            margin-bottom: 30px;
-            padding: 20px;
-            border: 1px solid #e0e0e0;
-            border-radius: 6px;
-            background-color: #fafafa;
-        }
-        .section-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            color: #3498db;
-        }
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
         label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
         }
-        input[type="text"] {
+        input[type="text"], textarea {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 16px;
             box-sizing: border-box;
         }
+        textarea {
+            min-height: 150px;
+            font-family: monospace;
+            white-space: pre;
+            overflow-x: auto;
+        }
         button {
             background-color: #3498db;
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 12px 20px;
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
+            font-weight: 600;
             transition: background-color 0.3s;
         }
         button:hover {
             background-color: #2980b9;
         }
-        .response {
+        .btn-group {
+            display: flex;
+            gap: 15px;
             margin-top: 20px;
+        }
+        .btn-group button {
+            flex: 1;
+        }
+        .result {
+            margin-top: 25px;
             padding: 15px;
             background-color: #f8f9fa;
-            border: 1px solid #e9ecef;
             border-radius: 4px;
-            max-height: 300px;
-            overflow-y: auto;
-            font-family: monospace;
-            white-space: pre-wrap;
+            border-left: 4px solid #3498db;
+        }
+        .result h3 {
+            margin-top: 0;
+            color: #2c3e50;
         }
         .error {
             color: #e74c3c;
             margin-top: 10px;
+            padding: 10px;
+            background-color: #fdeded;
+            border-radius: 4px;
+            border-left: 4px solid #e74c3c;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>聊天记录API测试工具</h1>
+        <h1>聊天记录API测试</h1>
         
-        <!-- JWT输入区域 -->
-        <div class="section">
-            <div class="section-title">认证设置</div>
-            <div class="form-group">
-                <label for="jwtToken">JWT令牌：</label>
-                <input type="text" id="jwtToken" placeholder="输入您的JWT令牌">
-            </div>
-            <div class="form-group">
-                <label for="baseUrl">API基础地址：</label>
-                <input type="text" id="baseUrl" value="http://localhost:8080/api">
-            </div>
+        <div class="form-group">
+            <label for="jwt">JWT令牌：</label>
+            <input type="text" id="jwt" placeholder="输入你的JWT令牌">
+            <small>提示：从登录接口获取有效的JWT令牌</small>
         </div>
         
-        <!-- 查询所有聊天记录 -->
-        <div class="section">
-            <div class="section-title">1. 查询所有聊天记录</div>
-            <div class="form-group">
-                <label for="userId">用户ID：</label>
-                <input type="text" id="userId" placeholder="输入用户ID">
-            </div>
-            <button onclick="getAllChatHistories()">执行查询</button>
-            <div class="response" id="allResponse"></div>
-            <div class="error" id="allError"></div>
+        <div class="form-group">
+            <label for="roleId">角色ID（测试特定角色时使用）：</label>
+            <input type="text" id="roleId" placeholder="输入角色ID">
         </div>
         
-        <!-- 查询特定角色聊天记录 -->
-        <div class="section">
-            <div class="section-title">2. 查询特定角色聊天记录</div>
-            <div class="form-group">
-                <label for="specificUserId">用户ID：</label>
-                <input type="text" id="specificUserId" placeholder="输入用户ID">
-            </div>
-            <div class="form-group">
-                <label for="roleId">角色ID：</label>
-                <input type="text" id="roleId" placeholder="输入角色ID">
-            </div>
-            <button onclick="getChatHistoryByRole()">执行查询</button>
-            <div class="response" id="specificResponse"></div>
-            <div class="error" id="specificError"></div>
+        <div class="btn-group">
+            <button id="testAllBtn">测试获取所有最近消息</button>
+            <button id="testRoleBtn">测试获取特定角色记录</button>
         </div>
+        
+        <div class="result">
+            <h3>API响应：</h3>
+            <div id="response"></div>
+        </div>
+        
+        <div id="error" class="error" style="display: none;"></div>
     </div>
 
     <script>
-        // 获取所有聊天记录
-        function getAllChatHistories() {
-            const jwtToken = document.getElementById('jwtToken').value;
-            const baseUrl = document.getElementById('baseUrl').value;
-            const userId = document.getElementById('userId').value;
+        document.addEventListener('DOMContentLoaded', function() {
+            const jwtInput = document.getElementById('jwt');
+            const roleIdInput = document.getElementById('roleId');
+            const testAllBtn = document.getElementById('testAllBtn');
+            const testRoleBtn = document.getElementById('testRoleBtn');
+            const responseDiv = document.getElementById('response');
+            const errorDiv = document.getElementById('error');
             
-            // 清除之前的响应和错误
-            document.getElementById('allResponse').textContent = '';
-            document.getElementById('allError').textContent = '';
+            // 基础API路径 - 根据实际部署修改
+            const BASE_API_URL = 'http://localhost:8080/api/history';
             
-            if (!jwtToken) {
-                document.getElementById('allError').textContent = '错误：请先输入JWT令牌';
-                return;
-            }
-            
-            if (!userId) {
-                document.getElementById('allError').textContent = '错误：请先输入用户ID';
-                return;
-            }
-            
-            const url = `${baseUrl}/history/user/${userId}`;
-            
-            fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${jwtToken}`
+            // 测试获取所有最近消息
+            testAllBtn.addEventListener('click', async () => {
+                const jwt = jwtInput.value.trim();
+                
+                if (!jwt) {
+                    showError('请提供JWT令牌');
+                    return;
                 }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => {
-                        throw new Error(`HTTP错误! 状态: ${response.status}, 消息: ${err.error || response.statusText}`);
+                
+                try {
+                    const response = await fetch(`${BASE_API_URL}/all`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${jwt}`,
+                            'Content-Type': 'application/json'
+                        }
                     });
+                    
+                    const data = await response.json();
+                    displayResponse(data);
+                } catch (error) {
+                    showError(`请求失败: ${error.message}`);
                 }
-                return response.json();
-            })
-            .then(data => {
-                document.getElementById('allResponse').textContent = JSON.stringify(data, null, 2);
-            })
-            .catch(error => {
-                document.getElementById('allError').textContent = `请求失败: ${error.message}`;
             });
-        }
-        
-        // 查询特定角色聊天记录
-        function getChatHistoryByRole() {
-            const jwtToken = document.getElementById('jwtToken').value;
-            const baseUrl = document.getElementById('baseUrl').value;
-            const userId = document.getElementById('specificUserId').value;
-            const roleId = document.getElementById('roleId').value;
             
-            // 清除之前的响应和错误
-            document.getElementById('specificResponse').textContent = '';
-            document.getElementById('specificError').textContent = '';
-            
-            if (!jwtToken) {
-                document.getElementById('specificError').textContent = '错误：请先输入JWT令牌';
-                return;
-            }
-            
-            if (!userId || !roleId) {
-                document.getElementById('specificError').textContent = '错误：请先输入用户ID和角色ID';
-                return;
-            }
-            
-            const url = `${baseUrl}/history/user/${userId}/role/${roleId}`;
-            
-            fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${jwtToken}`
+            // 测试获取特定角色记录
+            testRoleBtn.addEventListener('click', async () => {
+                const jwt = jwtInput.value.trim();
+                const roleId = roleIdInput.value.trim();
+                
+                if (!jwt) {
+                    showError('请提供JWT令牌');
+                    return;
                 }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => {
-                        throw new Error(`HTTP错误! 状态: ${response.status}, 消息: ${err.error || response.statusText}`);
+                
+                if (!roleId) {
+                    showError('请提供角色ID');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`${BASE_API_URL}/role/${roleId}`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${jwt}`,
+                            'Content-Type': 'application/json'
+                        }
                     });
+                    
+                    const data = await response.json();
+                    displayResponse(data);
+                } catch (error) {
+                    showError(`请求失败: ${error.message}`);
                 }
-                return response.json();
-            })
-            .then(data => {
-                document.getElementById('specificResponse').textContent = JSON.stringify(data, null, 2);
-            })
-            .catch(error => {
-                document.getElementById('specificError').textContent = `请求失败: ${error.message}`;
             });
-        }
+            
+            // 显示API响应
+            function displayResponse(data) {
+                hideError();
+                responseDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            }
+            
+            // 显示错误信息
+            function showError(message) {
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = message;
+                responseDiv.innerHTML = '';
+            }
+            
+            // 隐藏错误信息
+            function hideError() {
+                errorDiv.style.display = 'none';
+                errorDiv.textContent = '';
+            }
+        });
     </script>
 </body>
 </html>
