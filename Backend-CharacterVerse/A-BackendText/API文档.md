@@ -1373,6 +1373,7 @@ socket.onmessage = event => {
    - 推荐音频片段大小：2-5KB
 
 3. **监控建议**:
+   
    ```mermaid
    graph TD
      A[客户端] --> B[网络延迟]
@@ -1395,377 +1396,320 @@ socket.onmessage = event => {
 
 
 
-# 聊天记录API文档
+ # API文档：聊天记录
 
-## 1. 获取用户所有聊天记录
+ ## 1. 获取最近消息列表
 
-### 功能描述
-获取指定用户的所有聊天记录，包括文本聊天记录和语音聊天记录。
+ **端点**  
+ `GET /api/history/all`
 
-### 请求方式
-`GET`
+ **描述**  
+ 获取当前用户与所有角色的最近一条消息（包括文本消息、语音消息和语音通话记录），按时间倒序排列。该接口用于展示类似QQ消息列表的效果。
 
-### URL
-`/api/history/user/:user_id`
+ **请求头**  
+ - `Authorization: Bearer <JWT令牌>` - 用户认证令牌
 
-### 请求参数
-| 参数名  | 类型 | 位置    | 必填 | 说明   |
-| ------- | ---- | ------- | ---- | ------ |
-| user_id | 整数 | URL路径 | 是   | 用户ID |
+ **响应**  
+ 成功时返回HTTP状态码200，响应体为JSON数组，每个元素包含以下字段：
 
-### 请求头
-| 键            | 值             | 说明    |
-| ------------- | -------------- | ------- |
-| Authorization | Bearer {token} | JWT令牌 |
+| 字段名       | 类型   | 描述                                                     |
+| ------------ | ------ | -------------------------------------------------------- |
+| role_id      | uint   | 角色ID                                                   |
+| content      | string | 消息内容（文本或语音转文字）                             |
+| created_at   | string | 消息创建时间（ISO 8601格式）                             |
+| message_type | string | 消息类型（text/voice/voice_call）                        |
+| duration     | string | 可选，语音通话时长（仅当message_type为voice_call时存在） |
 
-### 响应格式
-成功时返回HTTP状态码200，响应体为JSON格式，包含以下字段：
+ **示例响应**  
+ ```json
+ [
+   {
+     "role_id": 123,
+     "content": "你好，最近怎么样？",
+     "created_at": "2025-09-27T10:30:00Z",
+     "message_type": "text"
+   },
+   {
+     "role_id": 456,
+     "content": "语音通话 (5m23s)",
+     "created_at": "2025-09-27T09:45:00Z",
+     "message_type": "voice_call",
+     "duration": "5m23s"
+   }
+ ]
+ ```
 
-| 字段名          | 类型 | 说明                                         |
-| --------------- | ---- | -------------------------------------------- |
-| text_histories  | 数组 | 文本聊天记录列表，每个元素为聊天记录对象     |
-| voice_histories | 数组 | 语音聊天记录列表，每个元素为语音聊天记录对象 |
+ **错误响应**  
+ - 401 Unauthorized: JWT令牌无效或缺失
+ - 500 Internal Server Error: 服务器内部错误
 
-**聊天记录对象结构（文本）**：
+ ## 2. 获取特定角色的聊天记录
+
+ **端点**  
+ `GET /api/history/role/:role_id`
+
+ **描述**  
+ 获取当前用户与特定角色的所有聊天记录（包括文本消息和语音通话记录）。
+
+ **请求头**  
+ - `Authorization: Bearer <JWT令牌>` - 用户认证令牌
+
+ **路径参数**  
+ - `role_id` - 角色ID（正整数）
+
+ **响应**  
+ 成功时返回HTTP状态码200，响应体为JSON对象，包含以下字段：
+
+| 字段名          | 类型  | 描述             |
+| --------------- | ----- | ---------------- |
+| text_histories  | array | 文本消息记录数组 |
+| voice_histories | array | 语音通话记录数组 |
+
+ 文本消息记录（text_histories）的每个元素包含以下字段：
+
+| 字段名        | 类型   | 描述                                 |
+| ------------- | ------ | ------------------------------------ |
+| id            | uint   | 记录ID                               |
+| user_id       | uint   | 用户ID                               |
+| role_id       | uint   | 角色ID                               |
+| message       | string | 消息内容                             |
+| is_user       | bool   | 是否为用户发送的消息                 |
+| message_type  | string | 消息类型（text/voice）               |
+| voice_url     | string | 语音URL（如果是语音消息）            |
+| asr_text      | string | 语音转文字后的文本（如果是语音消息） |
+| response_type | int    | 回复类型（0=文字,1=语音,2=随机）     |
+| created_at    | string | 创建时间（ISO 8601格式）             |
+
+ 语音通话记录（voice_histories）的每个元素包含以下字段：
+
+| 字段名     | 类型   | 描述                         |
+| ---------- | ------ | ---------------------------- |
+| id         | uint   | 记录ID                       |
+| user_id    | uint   | 用户ID                       |
+| role_id    | uint   | 角色ID                       |
+| start_time | string | 通话开始时间（ISO 8601格式） |
+| end_time   | string | 通话结束时间（ISO 8601格式） |
+| created_at | string | 记录创建时间（ISO 8601格式） |
+
+ **示例响应**  
+ ```json
+ {
+   "text_histories": [
+     {
+       "id": 1,
+       "user_id": 1001,
+       "role_id": 123,
+       "message": "你好",
+       "is_user": true,
+       "message_type": "text",
+       "voice_url": "",
+       "asr_text": "",
+       "response_type": 0,
+       "created_at": "2025-09-26T14:30:00Z"
+     },
+     {
+       "id": 2,
+       "user_id": 1001,
+       "role_id": 123,
+       "message": "",
+       "is_user": false,
+       "message_type": "voice",
+       "voice_url": "http://example.com/voice1.mp3",
+       "asr_text": "这是语音转文字的内容",
+       "response_type": 1,
+       "created_at": "2025-09-26T14:32:00Z"
+     }
+   ],
+   "voice_histories": [
+     {
+       "id": 1,
+       "user_id": 1001,
+       "role_id": 123,
+       "start_time": "2025-09-26T15:00:00Z",
+       "end_time": "2025-09-26T15:05:23Z",
+       "created_at": "2025-09-26T15:05:23Z"
+     }
+   ]
+ }
+ ```
+
+ **错误响应**  
+ - 400 Bad Request: 角色ID无效（非正整数）
+ - 401 Unauthorized: JWT令牌无效或缺失
+ - 500 Internal Server Error: 服务器内部错误
+
+ 注意：所有时间字段均为ISO 8601格式的字符串（例如："2025-09-27T10:30:00Z"）。
+
+以下是两个API的详细文档，采用标准的API文档格式：
+
+### API 1: 获取用户与所有角色的最近一条消息
+
+**端点**  
+`GET /api/history/all`
+
+**描述**  
+获取当前用户与所有角色的最近一条消息（包括文本消息、语音消息和语音通话记录），按时间倒序排列。该接口用于展示类似QQ消息列表的效果。
+
+**认证**  
+- 需要有效的JWT令牌（Bearer Token）
+- 令牌应包含用户ID信息
+
+**请求头**  
+```
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
+```
+
+**响应**  
+成功时返回HTTP状态码200，响应体为JSON数组：
+
+| 字段名       | 类型   | 描述                                               |
+| ------------ | ------ | -------------------------------------------------- |
+| role_id      | uint   | 角色ID                                             |
+| content      | string | 消息内容（文本或语音转文字）                       |
+| created_at   | string | 消息创建时间（ISO 8601格式）                       |
+| message_type | string | 消息类型（text/voice/voice_call）                  |
+| duration     | string | 语音通话时长（仅当message_type为voice_call时存在） |
+
+**示例响应**  
 ```json
-{
-  "ID": 1,
-  "CreatedAt": "2023-10-01T10:30:00Z",
-  "UpdatedAt": "2023-10-01T10:30:00Z",
-  "DeletedAt": null,
-  "user_id": 123,
-  "role_id": 456,
-  "content": "你好，今天天气怎么样？",
-  "timestamp": "2023-10-01T10:30:00Z"
-}
-```
-
-**语音聊天记录对象结构**：
-```json
-{
-  "ID": 1,
-  "CreatedAt": "2023-10-01T11:00:00Z",
-  "UpdatedAt": "2023-10-01T11:00:00Z",
-  "DeletedAt": null,
-  "user_id": 123,
-  "role_id": 456,
-  "start_time": "2023-10-01T11:00:00Z",
-  "end_time": "2023-10-01T11:15:00Z"
-}
-```
-
-### 示例
-**请求示例**
-```
-GET /api/history/user/123
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-**成功响应示例**
-```json
-{
-  "text_histories": [
-    {
-      "ID": 1,
-      "CreatedAt": "2023-10-01T10:30:00Z",
-      "UpdatedAt": "2023-10-01T10:30:00Z",
-      "DeletedAt": null,
-      "user_id": 123,
-      "role_id": 456,
-      "content": "你好，今天天气怎么样？",
-      "timestamp": "2023-10-01T10:30:00Z"
-    }
-  ],
-  "voice_histories": [
-    {
-      "ID": 1,
-      "CreatedAt": "2023-10-01T11:00:00Z",
-      "UpdatedAt": "2023-10-01T11:00:00Z",
-      "DeletedAt": null,
-      "user_id": 123,
-      "role_id": 456,
-      "start_time": "2023-10-01T11:00:00Z",
-      "end_time": "2023-10-01T11:15:00Z"
-    }
-  ]
-}
-```
-
-**错误响应示例**
-- 用户ID无效（非数字）：
-```json
-{
-  "error": "Invalid user ID"
-}
-```
-
-- 未找到记录（空数组）：
-```json
-{
-  "text_histories": [],
-  "voice_histories": []
-}
-```
-
-## 2. 获取用户特定角色的聊天记录
-
-### 功能描述
-获取指定用户与特定角色的聊天记录，包括文本聊天记录和语音聊天记录。
-
-### 请求方式
-`GET`
-
-### URL
-`/api/history/user/:user_id/role/:role_id`
-
-### 请求参数
-| 参数名  | 类型 | 位置    | 必填 | 说明   |
-| ------- | ---- | ------- | ---- | ------ |
-| user_id | 整数 | URL路径 | 是   | 用户ID |
-| role_id | 整数 | URL路径 | 是   | 角色ID |
-
-### 请求头
-| 键            | 值             | 说明    |
-| ------------- | -------------- | ------- |
-| Authorization | Bearer {token} | JWT令牌 |
-
-### 响应格式
-成功时返回HTTP状态码200，响应体为JSON格式，包含以下字段：
-
-| 字段名          | 类型 | 说明                                                     |
-| --------------- | ---- | -------------------------------------------------------- |
-| text_histories  | 数组 | 文本聊天记录列表，每个元素为聊天记录对象（结构同上）     |
-| voice_histories | 数组 | 语音聊天记录列表，每个元素为语音聊天记录对象（结构同上） |
-
-### 示例
-**请求示例**
-```
-GET /api/history/user/123/role/456
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-**成功响应示例**
-```json
-{
-  "text_histories": [
-    {
-      "ID": 1,
-      "CreatedAt": "2023-10-01T10:30:00Z",
-      "UpdatedAt": "2023-10-01T10:30:00Z",
-      "DeletedAt": null,
-      "user_id": 123,
-      "role_id": 456,
-      "content": "你好，今天天气怎么样？",
-      "timestamp": "2023-10-01T10:30:00Z"
-    }
-  ],
-  "voice_histories": [
-    {
-      "ID": 1,
-      "CreatedAt": "2023-10-01T11:00:00Z",
-      "UpdatedAt": "2023-10-01T11:00:00Z",
-      "DeletedAt": null,
-      "user_id": 123,
-      "role_id": 456,
-      "start_time": "2023-10-01T11:00:00Z",
-      "end_time": "2023-10-01T11:15:00Z"
-    }
-  ]
-}
-```
-
-**错误响应示例**
-- 用户ID或角色ID无效：
-```json
-{
-  "error": "Invalid user ID or role ID"
-}
-```
-
-## 注意事项
-1. 所有接口都需要在请求头中携带有效的JWT令牌。
-2. 响应中的时间字段均为ISO 8601格式的UTC时间。
-3. 如果查询结果为空，则返回空数组。
-
-此文档可直接提供给前端开发人员使用。
-
-以下是为前端团队设计的简洁API文档，使用Markdown格式，重点突出接口核心信息：
-
-```markdown
-# 聊天记录API文档
-
-## 基础信息
-- **认证方式**：JWT Bearer Token
-- **请求头**：
-  ```http
-  Authorization: Bearer <your_token>
-```
-- **根路径**：`http://localhost:8080/api`
-
----
-
-## 1. 获取用户所有聊天记录
-
-### 功能
-获取指定用户的所有聊天记录（文本+语音）
-
-### 请求
-```http
-GET /history/user/{user_id}
-```
-
-### 参数
-| 参数    | 位置    | 类型 | 必填 | 说明   |
-| ------- | ------- | ---- | ---- | ------ |
-| user_id | URL路径 | 整数 | 是   | 用户ID |
-
-### 成功响应
-```json
-{
-  "text_histories": [
-    {
-      "ID": 1,
-      "user_id": 123,
-      "role_id": 456,
-      "content": "你好，今天天气怎么样？",
-      "timestamp": "2023-10-01T10:30:00Z"
-    }
-  ],
-  "voice_histories": [
-    {
-      "ID": 1,
-      "user_id": 123,
-      "role_id": 456,
-      "start_time": "2023-10-01T11:00:00Z",
-      "end_time": "2023-10-01T11:15:00Z"
-    }
-  ]
-}
-```
-
-### 错误响应
-```json
-{
-  "error": "错误描述"
-}
-```
-
----
-
-## 2. 获取特定角色聊天记录
-
-### 功能
-获取用户与特定角色的聊天记录（文本+语音）
-
-### 请求
-```http
-GET /history/user/{user_id}/role/{role_id}
-```
-
-### 参数
-| 参数    | 位置    | 类型 | 必填 | 说明   |
-| ------- | ------- | ---- | ---- | ------ |
-| user_id | URL路径 | 整数 | 是   | 用户ID |
-| role_id | URL路径 | 整数 | 是   | 角色ID |
-
-### 成功响应
-```json
-{
-  "text_histories": [
-    {
-      "ID": 1,
-      "user_id": 123,
-      "role_id": 456,
-      "content": "你好，今天天气怎么样？",
-      "timestamp": "2023-10-01T10:30:00Z"
-    }
-  ],
-  "voice_histories": [
-    {
-      "ID": 1,
-      "user_id": 123,
-      "role_id": 456,
-      "start_time": "2023-10-01T11:00:00Z",
-      "end_time": "2023-10-01T11:15:00Z"
-    }
-  ]
-}
-```
-
-### 错误响应
-```json
-{
-  "error": "错误描述"
-}
-```
-
----
-
-## 数据结构说明
-
-### 文本聊天记录 (ChatHistory)
-| 字段      | 类型     | 说明               |
-| --------- | -------- | ------------------ |
-| ID        | uint     | 记录ID             |
-| user_id   | uint     | 用户ID             |
-| role_id   | uint     | 角色ID             |
-| content   | string   | 聊天内容           |
-| timestamp | datetime | 消息时间 (ISO格式) |
-
-### 语音聊天记录 (VoiceChatHistory)
-| 字段       | 类型     | 说明               |
-| ---------- | -------- | ------------------ |
-| ID         | uint     | 记录ID             |
-| user_id    | uint     | 用户ID             |
-| role_id    | uint     | 角色ID             |
-| start_time | datetime | 开始时间 (ISO格式) |
-| end_time   | datetime | 结束时间 (ISO格式) |
-
----
-
-## 使用示例
-
-### 获取用户123所有记录
-```javascript
-fetch('/api/history/user/123', {
-  headers: {
-    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+[
+  {
+    "role_id": 123,
+    "content": "你好，最近怎么样？",
+    "created_at": "2025-09-27T10:30:00Z",
+    "message_type": "text"
+  },
+  {
+    "role_id": 456,
+    "content": "语音通话 (5m23s)",
+    "created_at": "2025-09-27T09:45:00Z",
+    "message_type": "voice_call",
+    "duration": "5m23s"
   }
-})
-.then(response => response.json())
-.then(data => console.log(data));
+]
 ```
 
-### 获取用户123与角色456的记录
-```javascript
-fetch('/api/history/user/123/role/456', {
-  headers: {
-    'Authorization': 'Bearer YOUR_JWT_TOKEN'
-  }
-})
-.then(response => response.json())
-.then(data => console.log(data));
+**错误响应**  
+- 401 Unauthorized: JWT令牌无效或缺失
+- 500 Internal Server Error: 服务器内部错误
+
+### API 2: 获取特定角色的聊天记录
+
+**端点**  
+`GET /api/history/role/:role_id`
+
+**描述**  
+获取当前用户与特定角色的所有聊天记录（包括文本消息和语音通话记录）。
+
+**认证**  
+- 需要有效的JWT令牌（Bearer Token）
+- 令牌应包含用户ID信息
+
+**路径参数**  
+| 参数名  | 类型 | 描述   |
+| ------- | ---- | ------ |
+| role_id | uint | 角色ID |
+
+**请求头**  
+```
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
 ```
 
----
+**响应**  
+成功时返回HTTP状态码200，响应体为JSON对象：
 
-## 注意事项
-1. 所有接口都需要有效的JWT令牌
+| 字段名          | 类型  | 描述             |
+| --------------- | ----- | ---------------- |
+| text_histories  | array | 文本消息记录数组 |
+| voice_histories | array | 语音通话记录数组 |
 
-2. 时间字段均为ISO 8601格式的UTC时间
+**文本消息记录结构**  
+| 字段名        | 类型   | 描述                                 |
+| ------------- | ------ | ------------------------------------ |
+| id            | uint   | 记录ID                               |
+| user_id       | uint   | 用户ID                               |
+| role_id       | uint   | 角色ID                               |
+| message       | string | 消息内容                             |
+| is_user       | bool   | 是否为用户发送的消息                 |
+| message_type  | string | 消息类型（text/voice）               |
+| voice_url     | string | 语音URL（如果是语音消息）            |
+| asr_text      | string | 语音转文字后的文本（如果是语音消息） |
+| response_type | int    | 回复类型（0=文字,1=语音,2=随机）     |
+| created_at    | string | 创建时间（ISO 8601格式）             |
 
-3. 空结果返回空数组，不返回null
+**语音通话记录结构**  
+| 字段名     | 类型   | 描述                         |
+| ---------- | ------ | ---------------------------- |
+| id         | uint   | 记录ID                       |
+| user_id    | uint   | 用户ID                       |
+| role_id    | uint   | 角色ID                       |
+| start_time | string | 通话开始时间（ISO 8601格式） |
+| end_time   | string | 通话结束时间（ISO 8601格式） |
+| created_at | string | 记录创建时间（ISO 8601格式） |
 
-4. 错误状态码：
-   - 400：参数错误
-   
-   - 401：认证失败
-   
-   - 500：服务器错误
-   
-     
-   
-     
+**示例响应**  
+```json
+{
+  "text_histories": [
+    {
+      "id": 1,
+      "user_id": 1001,
+      "role_id": 123,
+      "message": "你好",
+      "is_user": true,
+      "message_type": "text",
+      "voice_url": "",
+      "asr_text": "",
+      "response_type": 0,
+      "created_at": "2025-09-26T14:30:00Z"
+    }
+  ],
+  "voice_histories": [
+    {
+      "id": 1,
+      "user_id": 1001,
+      "role_id": 123,
+      "start_time": "2025-09-26T15:00:00Z",
+      "end_time": "2025-09-26T15:05:23Z",
+      "created_at": "2025-09-26T15:05:23Z"
+    }
+  ]
+}
+```
+
+**错误响应**  
+- 400 Bad Request: 角色ID无效（非正整数）
+- 401 Unauthorized: JWT令牌无效或缺失
+- 500 Internal Server Error: 服务器内部错误
+
+### 安全注意事项
+
+1. **认证机制**：
+   - 所有API都需要有效的JWT令牌
+   - 令牌应通过HTTPS传输
+   - 令牌应设置合理的过期时间（建议15-30分钟）
+
+2. **权限控制**：
+   - 用户只能访问自己的聊天记录
+   - 后端应验证JWT中的用户ID与请求数据的关联性
+
+3. **数据保护**：
+   - 敏感数据（如语音URL）应使用加密链接
+   - 语音文件应存储在安全的位置
+   - 考虑对历史记录进行分页，避免一次性返回过多数据
+
+4. **错误处理**：
+   - 避免返回详细的错误信息给客户端
+   - 使用标准HTTP状态码表示错误类型
+   - 记录详细的错误日志供开发人员排查
+
+这些API设计符合RESTful原则，提供了清晰的接口定义和错误处理机制，可以方便地集成到前端应用中。
+
+
+
+
 
 # 通过标签查询角色
 
