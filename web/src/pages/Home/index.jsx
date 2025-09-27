@@ -12,7 +12,7 @@ import { PageContainer, FeatureCard, StatCard, CharacterCard } from '../../compo
 import useStore from '../../store/useStore'
 import { SearchBar } from './components'
 import useHomeStore from './store/useHomeStore'
-import { searchService, searchList } from './server/homeService'
+import { searchList, allList } from './server/homeService'
 import useChatStore from '../Chat/store/useChatStore'
 
 const Home = () => {
@@ -51,7 +51,7 @@ const Home = () => {
         page,
         page_size: pageSize
       }
-      const response = await searchList(params)
+      const response = await allList(params)
       
       if (response && response.data) {
         const { list, total, pages, has_more, page: currentPageNum } = response.data
@@ -123,16 +123,8 @@ const Home = () => {
       return
     }
 
-    setSearching(true)
-    try {
-      const results = await searchService.search(value)
-      setSearchResults(results)
-    } catch (error) {
-      console.error('搜索失败:', error)
-      setSearchResults([])
-    } finally {
-      setSearching(false)
-    }
+    // 跳转到搜索结果页面
+    navigate(`/search?keyword=${encodeURIComponent(value)}`)
   }
 
   return (
@@ -156,7 +148,7 @@ const Home = () => {
         {/* 角色列表 */}
         <div style={{ marginBottom: '40px' }}>
           <h3 style={{ marginBottom: '20px', color: '#1890ff', fontSize: '18px' }}>
-            🔥 角色列表 {total > 0 && <span style={{ fontSize: '14px', color: '#666' }}>({total}个角色)</span>}
+             角色列表 {total > 0 && <span style={{ fontSize: '14px', color: '#666' }}>({total}个角色)</span>}
           </h3>
           
           {characterList.length > 0 ? (

@@ -74,8 +74,11 @@ const CharacterCard = ({
     >
       <Meta
         avatar={
-          <Avatar size={48} style={{ fontSize: '1.5rem', backgroundColor: '#1890ff' }}>
-            {character.avatar || character.name?.charAt(0) || '👤'}
+          <Avatar size={48} 
+            style={{ fontSize: '1.5rem' }}
+            src={character.avatar_url?.startsWith('http') ? character.avatar_url : null}
+          >
+            {character.avatar_url?.startsWith('http') ? '' : '🤖'}
           </Avatar>
         }
         title={character.name}

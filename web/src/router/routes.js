@@ -2,6 +2,7 @@ import { lazy } from 'react'
 
 // 懒加载页面组件
 const Home = lazy(() => import('../pages/Home'))
+const SearchResults = lazy(() => import('../pages/Home/SearchResults'))
 const CharacterManagement = lazy(() => import('../pages/CharacterManagement'))
 const Chat = lazy(() => import('../pages/Chat'))
 const Profile = lazy(() => import('../pages/Profile'))
@@ -19,6 +20,18 @@ export const routes = [
     meta: {
       requiresAuth: false,
       description: '应用首页'
+    }
+  },
+  {
+    path: '/search',
+    element: SearchResults,
+    name: 'search',
+    title: '搜索结果',
+    icon: '🔍',
+    showInNav: false,
+    meta: {
+      requiresAuth: false,
+      description: '角色搜索结果页面'
     }
   },
   {

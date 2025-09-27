@@ -621,7 +621,7 @@ export const VoiceCallProvider = ({ children }) => {
         
         // 通过WebSocket发送
         const message = {
-          role_id: callState.character?.id || 1,
+          role_id: callState.character?.ID || 1,
           voice_url: audioUrl,
           format: 'wav',
           timestamp: Date.now()

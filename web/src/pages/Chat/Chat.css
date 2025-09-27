@@ -18,6 +18,12 @@
   background: var(--primary-light);
   border-left-color: var(--primary-color);
 }
+.ant-list-item-meta-content{
+  display: flex;
+  justify-content: center;
+    flex-direction: column;
+    margin-top: 1rem;
+}
 
 .character-list-item .ant-list-item-meta-title {
   color: var(--text-primary);
@@ -219,10 +225,6 @@
 
 .message-avatar.user .ant-avatar {
   background-color: var(--primary-color);
-}
-
-.message-avatar.ai .ant-avatar {
-  background-color: var(--success-color);
 }
 
 /* 响应式适配 */

@@ -139,7 +139,7 @@ const VoiceBubble = ({
     <div 
       className={`voice-bubble ${isOwn ? 'own' : 'other'} ${className}`}
       style={{ 
-        width: getBubbleWidth(),
+        width: getBubbleWidth() || minWidth,
         ...style 
       }}
     >
@@ -153,7 +153,8 @@ const VoiceBubble = ({
       )}
 
       {/* 语音气泡内容 */}
-      <div className="voice-content"   onClick={togglePlay}>
+      {!isLoading  &&(
+        <div className="voice-content"   onClick={togglePlay}>
         {/* 播放按钮 */}
         <div 
           className={`play-button ${isPlaying ? 'playing' : ''} ${isLoading ? 'loading' : ''}`}
@@ -187,6 +188,8 @@ const VoiceBubble = ({
              {isPlaying ? formatTime(currentTime) : formatTime(audioDuration)}
         </div>
       </div>
+      )}
+
     </div>
   )
 }

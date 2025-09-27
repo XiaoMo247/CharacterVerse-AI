@@ -27,7 +27,7 @@ import './Chat.css'
 import  ChatArea  from './components/ChatArea'
 // import AdvancedMicrophoneRecorder from '../../utils/advanced-microphone'
 import AudioWorkletVoiceRecorder from './components/Audio/AudioWorkletVoiceRecorder'
-import { processAndSendAudio } from './server/chatService'
+import { processAndSendAudio ,getHistory } from './server/chatService'
 import { VoiceCallProvider, useVoiceCall} from './components/VoiceCall/VoiceCallManager'
 import useChatStore from './store/useChatStore'
 
@@ -50,33 +50,90 @@ const Chat = () => {
     selectedCharacter, 
     characters, 
     selectCharacter, 
-    processPendingCharacter 
+    processPendingCharacter,
+    setCharacters
   } = useChatStore()
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
+  const initgetHistory = async() => {
+    try {
+      const res = await getHistory()
+      if (res && Array.isArray(res)) {
+        // 从历史消息中提取角色信息
+        const roleMap = new Map()
+        res.forEach(message => {
+          if (message.role && !roleMap.has(message.role.ID)) {
+            if(message.message_type !== 'voice_call' && message.role.name){
+                roleMap.set(message.role.ID, {
+                  ID: message.role.ID,
+                  name: message.role.name || `角色${message.role.ID}`,
+                  avatar_url: message.role.avatar_url || '',
+                  personality: message.role.personality || message.role.description || '',
+                  CreatedAt: message.role.CreatedAt,
+                  UpdatedAt: message.role.UpdatedAt,
+                  tags: [
+                    message.role.gender && (message.role.gender === 'male' ? '男性' : message.role.gender === 'female' ? '女性' : message.role.gender),
+                    message.role.age && `${message.role.age}岁`,
+                  ].filter(Boolean),
+                })
+            }
+          }
+        })
+        // 设置角色列表
+        const characters = Array.from(roleMap.values())
+        await setCharacters(characters)
+      }
+    } catch (error) {
+      console.error('获取历史记录失败:', error)
+    }
+  }
+
+  // 初始化获取历史记录和角色列表
+  useEffect(() => {
+    const init = async () => {
+      await initgetHistory()
+      // 在历史记录加载完成后处理待处理的角色
+        setTimeout(()=>{
+            const processedCharacter = processPendingCharacter()
+
+            if (processedCharacter) {
+              // 清空之前的消息，开始新的对话
+              setMessages([])
+              console.log('当前角色列表:', characters)
+            }
+        },100)
+
+    }
+    init()
+  }, [])
+
+  // 监听角色列表变化
+  useEffect(() => {
+    console.log('角色列表更新:', characters)
+  }, [characters])
+
   useEffect(() => {
     scrollToBottom()
   }, [messages, streamingMessage])
 
-  // 处理从其他页面传入的角色
-  useEffect(() => {
-    const processedCharacter = processPendingCharacter()
-    if (processedCharacter) {
-      // 清空之前的消息，开始新的对话
-      setMessages([])
-    }
-  }, [processPendingCharacter])
 
-  // 初始化WebSocket连接
+  // 监听选择的角色切换，初始化WebSocket连接
   useEffect(() => {
+    if (!selectedCharacter) return
+
     const initWebSocket = () => {
+      // 如果已有连接，先断开
+      if (streamingChatRef.current) {
+        streamingChatRef.current.disconnect()
+      }
+
       streamingChatRef.current = new StreamingChat({
         wsUrl: 'ws://localhost:8080/api/ws/chat',
         onConnected: () => {
-          // message.success('WebSocket连接成功')
+          console.log(`WebSocket连接成功，当前角色: ${selectedCharacter.name}`)
         },
         // onDisconnected: () => {
         //   setIsTyping(false)
@@ -119,14 +176,14 @@ const Chat = () => {
     }
 
     initWebSocket()
-
+    
     // 清理函数
     return () => {
       if (streamingChatRef.current) {
         streamingChatRef.current.disconnect()
       }
     }
-  }, [])
+  }, [selectedCharacter])
 
   const handleCharacterSelect = (character) => {
     selectCharacter(character)
@@ -165,7 +222,7 @@ const Chat = () => {
     const userMessage = {
       role: 'user',
       message: inputValue,
-      role_id: selectedCharacter.id,
+      role_id: selectedCharacter.ID,
       timestamp: new Date().toLocaleTimeString(),
       type: 'text',
       response_type: 2
@@ -206,7 +263,7 @@ const Chat = () => {
   const handleRecordingComplete = (audioBlob, duration) => {
     if(audioBlob){
       const recording = {
-        role_id: selectedCharacter.id,
+        role_id: selectedCharacter.ID,
         blob: audioBlob,
         duration: duration,
         timestamp: new Date(),
@@ -256,14 +313,18 @@ const Chat = () => {
                   dataSource={characters}
                   renderItem={(character) => (
                     <List.Item
-                      className={`character-list-item ${selectedCharacter?.id === character.id ? 'selected' : ''}`}
+                      className={`character-list-item ${selectedCharacter?.ID === character.ID ? 'selected' : ''}`}
                       onClick={() => handleCharacterSelect(character)}
                     >
                       <List.Item.Meta
                         avatar={
                           <div style={{ padding: '1rem'}}>
-                            <Avatar size={48} style={{ fontSize: '1.5rem' }}>
-                              {character.avatar}
+                            <Avatar 
+                            size={48} 
+                            style={{ fontSize: '1.5rem' }}
+                            src={character.avatar_url?character.avatar_url:null}
+                            >
+                             {character.avatar_url?.startsWith('http') ? '' : '🤖'}
                             </Avatar>
                           </div>
                         }
@@ -274,9 +335,6 @@ const Chat = () => {
                         }
                         description={
                           <div>
-                            <Text type="secondary" style={{ fontSize: '0.75rem' }}>
-                              {character.personality}
-                            </Text>
                             <div className="character-tags">
                               {character.tags.slice(0, 2).map(tag => (
                                 <Tag key={tag} size="small" color="blue">
@@ -305,8 +363,10 @@ const Chat = () => {
                   {/* 聊天头部 */}
                   <div className="chat-header">
                     <Space>
-                      <Avatar size={40} style={{ fontSize: '1.25rem' }}>
-                        {selectedCharacter.avatar}
+                      <Avatar size={40} style={{ fontSize: '1.25rem' }}
+                        src={selectedCharacter.avatar_url?selectedCharacter.avatar_url:null}
+                      >
+                        {selectedCharacter.avatar_url?.startsWith('http') ? '' : '🤖'}
                       </Avatar>
                       <div>
                         <Title level={5} style={{ margin: 0 }}>
