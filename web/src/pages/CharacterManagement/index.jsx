@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Row, Col, Button, Modal, Form, Input, Select, message, Space, Tag, Pagination, Alert } from 'antd'
 import { 
   PlusOutlined, 
@@ -11,10 +11,26 @@ import {
 import { CharacterCard } from '../../components'
 import PageContainer from '../../components/PageContainer'
 import StatCard from '../../components/StatCard'
-import { addRole, getRole, detailRole, updateRole} from './server/characterService'
+import { addRole, getRole, detailRole, updateRole, getvoiceTypes} from './server/characterService'
+import { useNavigate } from 'react-router-dom'
+import  useChatStore  from '../Chat/store/useChatStore'
 
 const { TextArea } = Input
 const { Option } = Select
+
+// 标签常量
+const TAG_OPTIONS = [
+  { value: "虚拟角色", label: "虚拟角色" },
+  { value: "历史角色", label: "历史角色" },
+  { value: "电影角色", label: "电影角色" },
+  { value: "电视剧角色", label: "电视剧角色" },
+  { value: "游戏角色", label: "游戏角色" },
+  { value: "动漫角色", label: "动漫角色" },
+  { value: "文学角色", label: "文学角色" },
+  { value: "神话角色", label: "神话角色" },
+  { value: "名人角色", label: "名人角色" },
+  { value: "原创角色", label: "原创角色" }
+]
 
 const CharacterManagement = () => {
   const [characters, setCharacters] = useState([])
@@ -29,6 +45,10 @@ const CharacterManagement = () => {
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [editingCharacter, setEditingCharacter] = useState(null)
   const [form] = Form.useForm()
+  const [voiceTypes, setVoiceTypes] = useState([])
+  
+  const navigate = useNavigate()
+  const { setPendingCharacter } = useChatStore()
 
   // 获取角色列表
   const fetchRoles = async (page = 1, pageSize = 10) => {
@@ -58,13 +78,35 @@ const CharacterManagement = () => {
     }
   }
 
+  // 获取声音类型列表
+  const fetchVoiceTypes = async () => {
+    try {
+      const response = await getvoiceTypes()
+      if (response && Array.isArray(response)) {
+        setVoiceTypes(response)
+      }
+    } catch (error) {
+      console.error('获取声音类型失败:', error)
+      message.error('获取声音类型失败')
+    }
+  }
+
   // 初始化加载数据
   useEffect(() => {
     fetchRoles()
+    fetchVoiceTypes()
   }, [])
 
   const avatarOptions = ['🤖', '👨', '👩', '🧑', '👦', '👧', '🎨', '📚', '🌟', '💎', '🦄', '🐱']
   const personalityOptions = ['友善', '活泼', '沉稳', '幽默', '严肃', '温柔', '热情', '冷静', '创意', '博学']
+
+  // 处理聊天按钮点击
+  const handleChat = useCallback((character) => {
+    // 将角色信息存储到 ChatStore 中
+    setPendingCharacter(character)
+    // 跳转到聊天页面
+    navigate('/chat')
+  }, [setPendingCharacter, navigate])
 
   const handleCreate = () => {
     setEditingCharacter(null)
@@ -79,7 +121,8 @@ const CharacterManagement = () => {
       description: character.description,
       gender: character.gender,
       age: character.age,
-      voice_type: character.voice_type
+      voice_type: character.voice_type,
+      tag: character.tag || ""
     })
     setIsModalVisible(true)
   }
@@ -118,10 +161,17 @@ const CharacterManagement = () => {
   // }
 
   const handleSubmit =async (values) => {
+    // 转换数据类型和字段名
+    const formattedValues = {
+      ...values,
+      age: parseInt(values.age), // 将年龄转换为数字类型
+      tag: values.tag // 标签字段（字符串类型）
+    }
+
     if (editingCharacter) {
       // 编辑现有角色
       try {
-        const res = await updateRole(editingCharacter.ID, values)
+        const res = await updateRole(editingCharacter.ID, formattedValues)
         if (res) {
           message.success('角色更新成功')
           // 更新成功后重新获取当前页数据
@@ -136,7 +186,7 @@ const CharacterManagement = () => {
     } else {
       // 创建新角色
       try {
-        const res = await addRole(values)
+        const res = await addRole(formattedValues)
         if(res?.role_id){
           message.success('角色创建成功')
           // 创建成功后重新获取第一页数据
@@ -145,6 +195,7 @@ const CharacterManagement = () => {
           message.error('角色创建失败')
         }
       } catch (error) {
+        console.error('角色创建失败:', error)
         message.error('角色创建失败')
       }
     }
@@ -215,6 +266,7 @@ const CharacterManagement = () => {
                 character={character}
                 onEdit={() => handleEdit(character)}
                 onDelete={() => handleDelete(character.ID)}
+                onChat={() => handleChat(character)}
                 // onToggleFavorite={() => handleToggleFavorite(character.id)}
               />
             </Col>
@@ -285,7 +337,15 @@ const CharacterManagement = () => {
                 label="年龄"
                 rules={[
                   { required: true, message: '请输入年龄' },
-                  { type: 'number', min: 0, max: 120, message: '年龄应在0-120之间' }
+                  { 
+                    validator: (_, value) => {
+                      const age = parseInt(value);
+                      if (isNaN(age) || age < 0 || age > 120) {
+                        return Promise.reject(new Error('年龄应在0-120之间'));
+                      }
+                      return Promise.resolve();
+                    }
+                  }
                 ]}
               >
                 <Input type="number" placeholder="请输入年龄" />
@@ -298,12 +358,11 @@ const CharacterManagement = () => {
                 rules={[{ required: true, message: '请选择声音类型' }]}
               >
                 <Select placeholder="请选择声音类型">
-                  <Option value="sweet">甜美</Option>
-                  <Option value="mature">成熟</Option>
-                  <Option value="gentle">温柔</Option>
-                  <Option value="energetic">活力</Option>
-                  <Option value="calm">沉稳</Option>
-                  <Option value="cheerful">开朗</Option>
+                  {voiceTypes.map((voice) => (
+                    <Option key={voice.voice_type} value={voice.voice_type}>
+                      {voice.voice_name} ({voice.category})
+                    </Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>
@@ -321,6 +380,20 @@ const CharacterManagement = () => {
               rows={4}
               placeholder="描述这个角色的特点、背景或能力..."
             />
+          </Form.Item>
+
+          <Form.Item
+            name="tag"
+            label="标签"
+            rules={[{ required: true, message: '请选择一个标签' }]}
+          >
+            <Select placeholder="请选择标签">
+              {TAG_OPTIONS.map((tag) => (
+                <Option key={tag.value} value={tag.value}>
+                  {tag.label}
+                </Option>
+              ))}
+            </Select>
           </Form.Item>
 
           <Alert
