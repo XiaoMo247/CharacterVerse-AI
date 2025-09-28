@@ -7,7 +7,6 @@
 .dockerignore
 docker-compose.override.yml
 docker-compose.prod.yml
-
 # Docker 数据卷和日志
 nginx/logs/
 mysql_data/
@@ -27,7 +26,7 @@ Backend-CharacterVerse/.air/
 !README*.md
 !LICENSE
 !Dockerfile*
-!docker-compose*.yml
+docker-compose*.yml
 !nginx/nginx.conf
 !nginx/conf.d/
 !Backend-CharacterVerse/.air.toml
