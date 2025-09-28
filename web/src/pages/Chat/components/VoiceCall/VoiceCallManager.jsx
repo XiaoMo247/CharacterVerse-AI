@@ -642,7 +642,8 @@ export const VoiceCallProvider = ({ children }) => {
         const mergedAudioData = mergeAudioDataChunks(cachedAudioData)
         // 将合并后的音频作为单个文件添加到播放队列
         addToPlaybackQueue(mergedAudioData)
-        
+      }else if(cachedAudioData.length === 1){
+        addToPlaybackQueue(cachedAudioData)
       }
       
       // 清除刷新定时器
