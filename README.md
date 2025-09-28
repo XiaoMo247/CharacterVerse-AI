@@ -1,3 +1,8 @@
+
+
+# 项目讲解地址
+https://www.bilibili.com/video/BV1EknZzaEAx/
+
 # CharacterVerse-AI
 
 ## Explanation
@@ -299,7 +304,3 @@ CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
 - **热模块替换** - 开发时实时更新，无需刷新
 - **ESLint 规范** - 代码质量保证
  
-
-
-# 项目讲解地址
-https://www.bilibili.com/video/BV1EknZzaEAx/
