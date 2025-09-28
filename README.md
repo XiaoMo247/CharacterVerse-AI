@@ -1,11 +1,11 @@
-
-
-# 项目讲解地址
-https://www.bilibili.com/video/BV1EknZzaEAx/
-
 # CharacterVerse-AI
 
+## 项目讲解视频
+
+> 应该是录屏软件的问题，中途页面有一点抽，但是前端显示实际上是正常的：https://www.bilibili.com/video/BV1EknZzaEAx/
+
 ## Explanation
+
 该项目为七牛云比赛项目，议题二。
 
 ## Question
@@ -47,7 +47,7 @@ https://www.bilibili.com/video/BV1EknZzaEAx/
 
 ```bash
 # 克隆项目
-git clone xxx
+git clone https://github.com/XiaoMo247/CharacterVerse-AI.git
 cd Backend-CharacterVerse
 
 # 安装依赖
@@ -304,3 +304,104 @@ CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
 - **热模块替换** - 开发时实时更新，无需刷新
 - **ESLint 规范** - 代码质量保证
  
+
+## Docker本地部署启动整个项目
+### 配置
+参考docs下的docker-compose.yml
+新建一个docker-compose.yml文件，内容如下
+```
+services:
+  # MySQL数据库
+  mysql:
+    image: mysql:8.0
+    container_name: characterverse-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 
+      MYSQL_DATABASE: 
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - characterverse-network
+      
+  # Redis服务
+  redis:
+    image: redis:alpine
+    container_name: characterverse-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    environment:
+      - REDIS_HOST=
+      - REDIS_PORT=
+      - REDIS_PASSWORD=
+      - REDIS_DB=
+    networks:
+      - characterverse-network
+    restart: unless-stopped
+    platform: linux/amd64
+
+  # Go后端服务
+  backend:
+    build:
+      context: ../server/Backend-CharacterVerse
+      dockerfile: Dockerfile.dev
+    container_name: characterverse-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../server/Backend-CharacterVerse:/app
+    environment:
+      - DB_HOST=
+      - DB_PORT=
+      - DB_USER=
+      - DB_PASSWORD=
+      - DB_NAME=
+      - JWT_SECRET=
+      - QINIU_API_KEY=
+      - QINIU_MODEL_NAME=
+      - REDIS_HOST=
+      - REDIS_PORT=
+      - REDIS_PASSWORD=
+      - REDIS_DB=
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - characterverse-network
+
+  # React前端服务
+  frontend:
+    build:
+      context: ../web
+      dockerfile: Dockerfile
+    container_name: characterverse-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../web:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - characterverse-network
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  characterverse-network:
+    driver: bridge
+```
+
+```
+cd docs
+docker-compose up
+```
