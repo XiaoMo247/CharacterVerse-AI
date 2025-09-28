@@ -26,7 +26,7 @@ Backend-CharacterVerse/.air/
 !README*.md
 !LICENSE
 !Dockerfile*
-docker-compose*.yml
+!docker-compose*.yml
 !nginx/nginx.conf
 !nginx/conf.d/
 !Backend-CharacterVerse/.air.toml
