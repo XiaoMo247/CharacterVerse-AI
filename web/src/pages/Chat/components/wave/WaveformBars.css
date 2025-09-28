@@ -1,0 +1,288 @@
+/* 波形条组件样式 - 从中间向两边跳动 */
+.waveform-bars {
+  position: relative;
+  width: 100%;
+  height: calc(var(--max-height) + 40px);
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+
+/* 波形容器 - 水平排列，从中间向两边 */
+.waveform-container {
+  position: relative;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  gap: 3px;
+  height: var(--max-height, 40px);
+  width: 100%;
+  z-index: 2;
+}
+
+/* 单个波形条 - 从中间向两边排列，上下跳动 */
+.waveform-bar {
+  position: relative;
+  width: 4px;
+  background: var(--bar-color, var(--waveform-color, #1890ff));
+  border-radius: 2px;
+  transition: height 0.15s ease-out;
+  transform-origin: bottom;
+  min-height: 2px;
+  
+  /* 发光效果 */
+  box-shadow: 
+    0 0 6px rgba(24, 144, 255, 0.4),
+    inset 0 0 2px rgba(255, 255, 255, 0.3);
+}
+
+/* 激活时的波形条动画 */
+.waveform-bar.active {
+  animation: vertical-pulse 0.8s ease-in-out infinite;
+}
+
+/* 中心条形图特殊样式 */
+.waveform-bar.center-bar {
+  width: 5px;
+  box-shadow: 
+    0 0 8px rgba(24, 144, 255, 0.6),
+    inset 0 0 3px rgba(255, 255, 255, 0.4);
+}
+
+/* 垂直脉冲动画 - 上下跳动，从中间向两边传播 */
+@keyframes vertical-pulse {
+  0%, 100% {
+    height: 3px;
+    opacity: 0.5;
+    transform: scaleY(0.2);
+  }
+  25% {
+    height: calc(var(--amplitude, 0.5) * var(--max-height, 40px) * 0.7);
+    opacity: 0.8;
+    transform: scaleY(0.7);
+  }
+  50% {
+    height: calc(var(--amplitude, 0.5) * var(--max-height, 40px));
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  75% {
+    height: calc(var(--amplitude, 0.5) * var(--max-height, 40px) * 0.8);
+    opacity: 0.9;
+    transform: scaleY(0.8);
+  }
+}
+
+/* 波形条的渐变效果 */
+.waveform-bar::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  background: linear-gradient(
+    to top,
+    var(--bar-color, var(--waveform-color, #1890ff)) 0%,
+    rgba(24, 144, 255, 0.8) 50%,
+    rgba(24, 144, 255, 0.4) 100%
+  );
+  border-radius: 3px;
+  opacity: 0.3;
+  z-index: -1;
+}
+
+
+/* 波形传播动画 - 从中间向两边，上下跳动 */
+@keyframes wave-propagation {
+  0% {
+    transform: scaleY(0.1);
+    opacity: 0.2;
+  }
+  25% {
+    transform: scaleY(0.6);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  75% {
+    transform: scaleY(0.8);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scaleY(0.3);
+    opacity: 0.6;
+  }
+}
+
+/* 激活时的波形传播效果 */
+.waveform-bars.active .waveform-bar {
+  animation: 
+    wave-propagation 1s ease-in-out infinite,
+    vertical-pulse 0.6s ease-in-out infinite;
+}
+
+/* 不同尺寸变体 */
+.waveform-bars.small {
+  --max-height: 25px;
+  height: 55px;
+  padding: 10px;
+}
+
+.waveform-bars.small .waveform-bar {
+  width: 3px;
+}
+
+.waveform-bars.large {
+  --max-height: 60px;
+  height: 120px;
+  padding: 20px;
+}
+
+.waveform-bars.large .waveform-bar {
+  width: 6px;
+}
+
+/* 主题变体 */
+.waveform-bars.theme-green {
+  --waveform-color: #52c41a;
+}
+
+.waveform-bars.theme-orange {
+  --waveform-color: #fa8c16;
+}
+
+.waveform-bars.theme-purple {
+  --waveform-color: #722ed1;
+}
+
+.waveform-bars.theme-red {
+  --waveform-color: #ff4d4f;
+}
+
+/* 渐变主题 */
+.waveform-bars.gradient .waveform-bar {
+  background: linear-gradient(
+    90deg,
+    #1890ff 0%,
+    #36cfc9 50%,
+    #73d13d 100%
+  );
+}
+
+.waveform-bars.gradient .waveform-bar::before {
+  background: linear-gradient(
+    90deg,
+    rgba(24, 144, 255, 0.3) 0%,
+    rgba(54, 207, 201, 0.3) 50%,
+    rgba(115, 209, 61, 0.3) 100%
+  );
+}
+
+/* 暗色主题适配 */
+[data-theme="dark"] .waveform-bars {
+  /* 移除背景色 */
+}
+
+[data-theme="dark"] .center-indicator {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 20%,
+    rgba(255, 255, 255, 0.4) 50%,
+    rgba(255, 255, 255, 0.2) 80%,
+    transparent 100%
+  );
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .waveform-bars {
+    padding: 10px;
+    height: calc(var(--max-height) + 30px);
+  }
+  
+  .waveform-container {
+    gap: 2px;
+  }
+  
+  .waveform-bar {
+    width: 3px;
+  }
+}
+
+/* 高性能模式 - 减少动画 */
+@media (prefers-reduced-motion: reduce) {
+  .waveform-bar {
+    animation: none !important;
+  }
+  
+  .waveform-bar {
+    transition: height 0.05s linear;
+  }
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+  .waveform-bar {
+    box-shadow: none;
+  }
+  
+  .center-indicator {
+    background: var(--waveform-color, #1890ff);
+    opacity: 0.5;
+  }
+}
+
+/* 特殊效果 - 呼吸灯 */
+.waveform-bars.breathing {
+  animation: breathing-glow 3s ease-in-out infinite;
+}
+
+@keyframes breathing-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(24, 144, 255, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(24, 144, 255, 0.3);
+  }
+}
+
+/* 波纹效果 */
+.waveform-bars.ripple::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: radial-gradient(
+    circle,
+    rgba(24, 144, 255, 0.2) 0%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: ripple-effect 2s ease-out infinite;
+  z-index: 0;
+}
+
+@keyframes ripple-effect {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 1;
+  }
+  100% {
+    width: 150px;
+    height: 150px;
+    opacity: 0;
+  }
+}

@@ -1,0 +1,285 @@
+/* 语音冒泡组件样式 - 类似QQ/微信语音消息 */
+
+.voice-bubble {
+  position: relative;
+  padding: 12px 16px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #f0f2f5 0%, #e8eaed 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  user-select: none;
+  margin: 4px 0;
+}
+
+/* 自己发送的语音消息 */
+.voice-bubble.own {
+  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
+  color: white;
+  margin-left: auto;
+}
+
+.voice-bubble.own .voice-icon {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 他人发送的语音消息 */
+.voice-bubble.other {
+  background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+  color: #333;
+  margin-right: auto;
+}
+
+.voice-bubble.other .voice-icon {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+/* 悬停效果 */
+.voice-bubble:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.voice-bubble.own:hover {
+  background: linear-gradient(135deg, #096dd9 0%, #1890ff 100%);
+}
+
+.voice-bubble.other:hover {
+  background: linear-gradient(135deg, #fafafa 0%, #f0f0f0 100%);
+}
+
+/* 语音内容容器 */
+.voice-content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  position: relative;
+  /* justify-content: center; */
+}
+
+/* 播放按钮 */
+.play-button {
+  flex: 1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+/* 加载动画 */
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* 波形动画容器 */
+.waveform-container1 {
+  flex: 1;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+}
+
+.waveform1 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 100%;
+}
+
+.waveform-barss {
+  width: 3px;
+  height: 4px;
+  background: currentColor;
+  border-radius: 2px;
+  opacity: 0.4;
+  transition: all 0.2s ease;
+}
+
+.voice-bubble.own .waveform-barss {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.voice-bubble.other .waveform-barss {
+  background: rgba(24, 144, 255, 0.8);
+}
+
+/* 播放时的波形动画 */
+.waveform1.playing .waveform-barss {
+  opacity: 1;
+  animation: waveform-bounce 1.2s ease-in-out infinite;
+}
+
+.waveform1.playing .waveform-barss:nth-child(1) { animation-delay: 0s; }
+.waveform1.playing .waveform-barss:nth-child(2) { animation-delay: 0.1s; }
+.waveform1.playing .waveform-barss:nth-child(3) { animation-delay: 0.2s; }
+.waveform1.playing .waveform-barss:nth-child(4) { animation-delay: 0.3s; }
+.waveform1.playing .waveform-bars:nth-child(5) { animation-delay: 0.4s; }
+.waveform1.playing .waveform-barss:nth-child(6) { animation-delay: 0.3s; }
+.waveform1.playing .waveform-barss:nth-child(7) { animation-delay: 0.2s; }
+.waveform1.playing .waveform-barss:nth-child(8) { animation-delay: 0.1s; }
+
+@keyframes waveform-bounce {
+  0%, 100% { 
+    height: 4px;
+    transform: scaleY(1);
+  }
+  50% { 
+    height: 16px;
+    transform: scaleY(1.5);
+  }
+}
+
+/* 时长显示 */
+.duration-display {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.8;
+  min-width: 30px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.voice-bubble.own .duration-display {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.voice-bubble.other .duration-display {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+/* 播放进度条 */
+.progress-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 0 0 18px 18px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: rgba(255, 255, 255, 0.6);
+  transition: width 0.1s ease;
+  border-radius: 0 0 18px 0;
+}
+
+.voice-bubble.other .progress-container {
+  background: rgba(24, 144, 255, 0.1);
+}
+
+.voice-bubble.other .progress-bar {
+  background: #1890ff;
+}
+
+/* 语音图标 */
+.voice-icon {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 12px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* 错误提示 */
+.error-message {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ff4d4f;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 10;
+  animation: fadeInOut 3s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0; transform: translateX(-50%) translateY(-5px); }
+  10%, 90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .voice-bubble {
+    max-width: 80%;
+    padding: 10px 14px;
+  }
+  
+  .play-button {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+  
+  .voice-content {
+    gap: 10px;
+  }
+  
+  .duration-display {
+    font-size: 11px;
+  }
+}
+
+/* 暗色主题适配 */
+[data-theme="dark"] .voice-bubble.other {
+  background: linear-gradient(135deg, #2f2f2f 0%, #404040 100%);
+  color: #e8e8e8;
+}
+
+[data-theme="dark"] .voice-bubble.other:hover {
+  background: linear-gradient(135deg, #3a3a3a 0%, #4a4a4a 100%);
+}
+
+[data-theme="dark"] .voice-bubble.other .play-button {
+  background: rgba(255, 255, 255, 0.1);
+  color: #40a9ff;
+  border-color: rgba(64, 169, 255, 0.2);
+}
+
+[data-theme="dark"] .voice-bubble.other .waveform-barss {
+  background: rgba(64, 169, 255, 0.8);
+}
+
+[data-theme="dark"] .voice-bubble.other .duration-display {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="dark"] .voice-bubble.other .progress-container {
+  background: rgba(64, 169, 255, 0.1);
+}
+
+[data-theme="dark"] .voice-bubble.other .progress-bar {
+  background: #40a9ff;
+}

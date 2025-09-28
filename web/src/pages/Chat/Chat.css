@@ -1,0 +1,424 @@
+/* 聊天页面主题适配样式 */
+
+/* 角色列表项 */
+.character-list-item {
+  padding: 1rem;
+  cursor: pointer;
+  background: var(--bg-primary);
+  border-left: 3px solid transparent;
+  transition: all var(--animation-duration-base) var(--ease-out);
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.character-list-item:hover {
+  background: var(--bg-secondary);
+}
+
+.character-list-item.selected {
+  background: var(--primary-light);
+  border-left-color: var(--primary-color);
+}
+.ant-list-item-meta-content{
+  display: flex;
+  justify-content: center;
+    flex-direction: column;
+    margin-top: 1rem;
+}
+
+.character-list-item .ant-list-item-meta-title {
+  color: var(--text-primary);
+}
+
+.character-list-item .ant-list-item-meta-description {
+  color: var(--text-secondary);
+}
+
+/* 聊天头部 */
+.chat-header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-secondary);
+  background: var(--bg-primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chat-header .ant-typography {
+  color: var(--text-primary);
+}
+
+.chat-header .ant-typography-caption {
+  color: var(--text-secondary);
+}
+
+/* 消息区域 */
+.messages-container {
+  flex: 1;
+  max-height: 70vh;
+  box-sizing: content-box;
+  padding: 1rem;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+}
+
+/* 消息气泡 */
+.message-bubble {
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  box-shadow: var(--shadow-1);
+  word-break: break-word;
+  transition: all var(--animation-duration-base) var(--ease-out);
+}
+
+.message-bubble.user {
+  background: var(--primary-color);
+  color: white;
+}
+
+.message-bubble.ai {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-secondary);
+}
+
+.message-bubble:hover {
+  box-shadow: var(--shadow-2);
+}
+
+/* 消息时间戳 */
+.message-timestamp {
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  display: block;
+  color: var(--text-tertiary);
+}
+
+.message-timestamp.user {
+  text-align: right;
+}
+
+.message-timestamp.ai {
+  text-align: left;
+}
+
+/* 正在输入指示器 */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.typing-bubble {
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  box-shadow: var(--shadow-1);
+  color: var(--text-secondary);
+}
+
+/* 输入区域 */
+.chat-input-area {
+  padding: 1rem;
+  border-top: 1px solid var(--border-secondary);
+  background: var(--bg-primary);
+}
+
+.chat-input-area .ant-input {
+  background: var(--bg-primary);
+  border-color: var(--border-primary);
+  color: var(--text-primary);
+}
+
+.chat-input-area .ant-input:focus {
+  border-color: var(--primary-color);
+  /* box-shadow: 0 0 0 2px var(--primary-light); */
+}
+
+.chat-input-area .ant-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* 空状态 */
+.chat-empty-state {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+}
+
+.chat-empty-state .ant-empty-description {
+  color: var(--text-secondary);
+}
+
+/* 在线状态指示器 */
+.online-indicator {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-primary);
+}
+
+.online-indicator.online {
+  background-color: var(--success-color);
+}
+
+.online-indicator.offline {
+  background-color: var(--text-disabled);
+}
+
+/* 角色标签 */
+.character-tags {
+  margin-top: 0.25rem;
+}
+
+.character-tags .ant-tag {
+  margin-right: 0.25rem;
+  margin-bottom: 0.25rem;
+  border-radius: var(--border-radius-base);
+  font-size: 0.75rem;
+}
+
+/* 卡片样式重写 */
+.chat-page .ant-card {
+  background: var(--bg-primary);
+  border-color: var(--border-secondary);
+}
+
+.chat-page .ant-card-head {
+  background: var(--bg-secondary);
+  border-bottom-color: var(--border-secondary);
+}
+
+.chat-page .ant-card-head-title {
+  color: var(--text-primary);
+}
+
+.chat-page .ant-card-body {
+  background: var(--bg-primary);
+}
+
+/* 列表样式重写 */
+.chat-page .ant-list-item {
+  border-bottom-color: var(--border-secondary);
+}
+
+/* 按钮样式重写 */
+.chat-page .ant-btn-text {
+  color: var(--text-secondary);
+}
+
+.chat-page .ant-btn-text:hover {
+  color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+/* 头像样式 */
+.message-avatar {
+  flex-shrink: 0;
+}
+
+.message-avatar.user .ant-avatar {
+  background-color: var(--primary-color);
+}
+
+/* 响应式适配 */
+@media (max-width: 768px) {
+  .chat-header {
+    padding: 0.75rem;
+  }
+  
+  .messages-container {
+    padding: 0.75rem;
+  }
+  
+  .chat-input-area {
+    padding: 0.75rem;
+  }
+  
+  .character-list-item {
+    padding: 0.75rem;
+  }
+}
+
+/* 暗色主题特殊适配 */
+[data-theme="dark"] .character-list-item.selected {
+  background: rgba(24, 144, 255, 0.15);
+}
+
+[data-theme="dark"] .message-bubble.ai {
+  background: var(--bg-tertiary);
+  border-color: var(--border-tertiary);
+}
+
+[data-theme="dark"] .typing-bubble {
+  background: var(--bg-tertiary);
+  border-color: var(--border-tertiary);
+}
+
+[data-theme="dark"] .chat-input-area .ant-input {
+  background: var(--bg-secondary);
+  border-color: var(--border-tertiary);
+}
+
+/* 动画效果 */
+.message-bubble {
+  animation: messageSlideIn 0.3s ease-out;
+}
+
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.typing-indicator {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 滚动条样式 */
+.messages-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messages-container::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+}
+
+.messages-container::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  border-radius: 3px;
+}
+
+.messages-container::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}
+
+/* 流式消息样式 */
+.message-bubble.streaming {
+  position: relative;
+  min-height: 1.5rem;
+  animation: streamingPulse 2s ease-in-out infinite;
+}
+
+.streaming-cursor {
+  display: inline-block;
+  margin-left: 2px;
+  animation: blink 1s infinite;
+  color: var(--primary-color);
+  font-weight: bold;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+@keyframes streamingPulse {
+  0%, 100% { 
+    box-shadow: var(--shadow-1); 
+  }
+  50% { 
+    box-shadow: var(--shadow-2); 
+    transform: translateY(-1px);
+  }
+}
+
+/* 思考动画 */
+.typing-dots::after {
+  content: '';
+  display: inline-block;
+  animation: dots 1.5s infinite;
+}
+
+@keyframes dots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+  100% { content: ''; }
+}
+
+/* 连接状态样式 */
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.connection-status.connected {
+  color: var(--success-color, #52c41a);
+}
+
+.connection-status.disconnected {
+  color: var(--error-color, #ff4d4f);
+}
+
+/* 流式消息淡入效果 */
+.message-bubble.streaming {
+  animation: streamingFadeIn 0.3s ease-in, streamingPulse 2s ease-in-out infinite 0.3s;
+}
+
+@keyframes streamingFadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(10px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+/* 发送按钮加载状态 */
+.ant-btn-loading .ant-btn-loading-icon {
+  margin-right: 8px;
+}
+
+/* WebSocket连接状态标签 */
+.chat-header .ant-tag {
+  font-size: 0.75rem;
+  border-radius: var(--border-radius-base);
+}
+
+/* 流式文本逐字显示效果 */
+.streaming-text {
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 暗色主题下的流式消息 */
+[data-theme="dark"] .message-bubble.streaming {
+  background: var(--bg-tertiary);
+  border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .streaming-cursor {
+  color: var(--primary-light);
+}
+
+.voice-call:hover{
+  cursor: pointer;
+}
