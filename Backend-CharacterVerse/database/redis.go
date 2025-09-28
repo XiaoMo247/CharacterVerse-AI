@@ -13,6 +13,8 @@ var RedisClient *redis.Client
 
 func InitRedis() {
 	cfg := config.LoadConfig()
+	fmt.Printf("Redis配置: %s:%s (DB: %d)\n",
+		cfg.RedisHost, cfg.RedisPort, cfg.RedisDB)
 
 	RedisClient = redis.NewClient(&redis.Options{
 		Addr:         fmt.Sprintf("%s:%s", cfg.RedisHost, cfg.RedisPort), // Redis地址

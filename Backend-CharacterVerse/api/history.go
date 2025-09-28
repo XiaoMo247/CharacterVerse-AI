@@ -35,7 +35,7 @@ func GetAllChatHistories(c *gin.Context) {
 	c.JSON(http.StatusOK, response.Success(recentMessages))
 }
 
-// GetChatHistoryByRole 获取特定角色的聊天记录及角色信息
+// GetChatHistoryByRole 获取特定角色的聊天记录（统一格式数组）
 func GetChatHistoryByRole(c *gin.Context) {
 	// 从JWT中获取用户ID
 	userID, exists := c.Get("userID")
@@ -57,11 +57,12 @@ func GetChatHistoryByRole(c *gin.Context) {
 	}
 
 	historyService := service.HistoryService{}
-	result, err := historyService.GetHistoriesByRole(uid, uint(roleID))
+	// 获取统一格式的聊天记录数组
+	unifiedHistories, err := historyService.GetUnifiedHistoriesByRole(uid, uint(roleID))
 	if err != nil {
 		c.JSON(response.InternalError("获取聊天记录失败").Code, response.InternalError("获取聊天记录失败"))
 		return
 	}
 
-	c.JSON(http.StatusOK, response.Success(result))
+	c.JSON(http.StatusOK, response.Success(unifiedHistories))
 }
