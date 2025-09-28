@@ -135,6 +135,10 @@ func updateVoiceChatHistory(history model.VoiceChatHistory) {
 		FirstOrCreate(&record).Error; err != nil {
 		log.Printf("更新语音通话历史失败: %v", err)
 	}
+
+	historyService := HistoryService{}
+	historyService.ClearUserCache(history.UserID)
+
 }
 
 // 处理语音消息
@@ -186,6 +190,8 @@ func processVoiceMessage(ctx context.Context, conn *websocket.Conn, userID uint,
 		if err := updateConversationSummary(userID, msg.RoleID, newSummary); err != nil {
 			log.Printf("更新对话摘要失败: %v", err)
 		}
+		historyService := HistoryService{}
+		historyService.ClearUserCache(userID)
 	}()
 
 	return nil

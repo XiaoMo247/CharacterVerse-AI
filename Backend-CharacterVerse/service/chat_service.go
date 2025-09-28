@@ -108,6 +108,21 @@ func HandleChatSession(conn *websocket.Conn, userID uint) {
 
 // 处理文本消息
 func handleTextMessage(conn *websocket.Conn, userID uint, chatMsg ChatMessage) {
+	// 先保存用户消息到数据库
+	if err := database.SaveUserMessage(
+		userID,
+		chatMsg.RoleID,
+		chatMsg.Message,
+		chatMsg.Type,
+		"", // 文本消息没有语音URL
+	); err != nil {
+		log.Printf("保存用户消息失败: %v", err)
+	}
+
+	// 清除缓存
+	clearUserCache(userID)
+
+	// 处理消息并获取AI回复
 	response, err := processMessage(userID, chatMsg.RoleID, chatMsg.Message, chatMsg.Type, "")
 	if err != nil {
 		sendError(conn, "处理消息失败: "+err.Error())
@@ -115,7 +130,7 @@ func handleTextMessage(conn *websocket.Conn, userID uint, chatMsg ChatMessage) {
 	}
 
 	// 根据用户期望的回复类型发送响应
-	sendResponseBasedOnType(conn, chatMsg, response)
+	sendResponseBasedOnType(conn, userID, chatMsg, response) // 修复：传入userID
 }
 
 // 处理语音消息
@@ -129,26 +144,40 @@ func handleVoiceMessage(conn *websocket.Conn, userID uint, chatMsg ChatMessage) 
 
 	log.Printf("语音识别结果 (用户ID: %d, 角色ID: %d): %s", userID, chatMsg.RoleID, text)
 
-	// 2. 处理文本消息
+	// 2. 保存用户语音消息到数据库
+	if err := database.SaveUserMessage(
+		userID,
+		chatMsg.RoleID,
+		text, // 保存语音转文字后的文本
+		chatMsg.Type,
+		chatMsg.Message, // 保存语音URL
+	); err != nil {
+		log.Printf("保存用户语音消息失败: %v", err)
+	}
+
+	// 清除缓存
+	clearUserCache(userID)
+
+	// 3. 处理文本消息
 	response, err := processMessage(userID, chatMsg.RoleID, text, chatMsg.Type, chatMsg.Message)
 	if err != nil {
 		sendError(conn, "处理消息失败: "+err.Error())
 		return
 	}
 
-	// 3. 根据用户期望的回复类型发送响应
-	sendResponseBasedOnType(conn, chatMsg, response)
+	// 4. 根据用户期望的回复类型发送响应
+	sendResponseBasedOnType(conn, userID, chatMsg, response) // 修复：传入userID
 }
 
 // 根据回复类型发送响应
-func sendResponseBasedOnType(conn *websocket.Conn, chatMsg ChatMessage, responseText string) {
+func sendResponseBasedOnType(conn *websocket.Conn, userID uint, chatMsg ChatMessage, responseText string) {
 	// 确定最终回复类型
 	responseType := determineResponseType(chatMsg.ResponseType)
 
 	// 根据回复类型处理
 	switch responseType {
 	case ResponseTypeVoice:
-		sendVoiceResponse(conn, chatMsg, responseText)
+		sendVoiceResponse(conn, userID, chatMsg, responseText) // 修复：传入userID
 	default:
 		// 默认发送文本回复
 		if err := conn.WriteJSON(ChatResponse{
@@ -158,6 +187,18 @@ func sendResponseBasedOnType(conn *websocket.Conn, chatMsg ChatMessage, response
 		}); err != nil {
 			log.Printf("发送消息错误: %v", err)
 		}
+
+		// 保存AI文本回复 - 使用传入的userID而不是chatMsg.UserID
+		if err := database.SaveAITextMessage(
+			userID, // 修复：使用传入的userID
+			chatMsg.RoleID,
+			responseText,
+		); err != nil {
+			log.Printf("保存AI文本消息失败: %v", err)
+		}
+
+		// 清除缓存
+		clearUserCache(userID)
 	}
 }
 
@@ -236,7 +277,7 @@ func uploadVoiceToServer(audioData []byte) (string, error) {
 }
 
 // 发送语音回复
-func sendVoiceResponse(conn *websocket.Conn, chatMsg ChatMessage, responseText string) {
+func sendVoiceResponse(conn *websocket.Conn, userID uint, chatMsg ChatMessage, responseText string) {
 	// 获取角色信息以确定音色
 	role, err := database.GetRoleByID(chatMsg.RoleID)
 	if err != nil {
@@ -267,14 +308,15 @@ func sendVoiceResponse(conn *websocket.Conn, chatMsg ChatMessage, responseText s
 			log.Printf("发送消息错误: %v", err)
 		}
 
-		// 保存AI文本回复
+		// 保存AI文本回复 - 使用传入的userID而不是chatMsg.UserID
 		if err := database.SaveAITextMessage(
-			chatMsg.UserID,
+			userID, // 修复：使用传入的userID
 			chatMsg.RoleID,
 			responseText,
 		); err != nil {
 			log.Printf("保存AI文本消息失败: %v", err)
 		}
+		clearUserCache(userID)
 		return
 	}
 
@@ -291,26 +333,28 @@ func sendVoiceResponse(conn *websocket.Conn, chatMsg ChatMessage, responseText s
 			log.Printf("发送消息错误: %v", err)
 		}
 
-		// 保存AI文本回复
+		// 保存AI文本回复 - 使用传入的userID而不是chatMsg.UserID
 		if err := database.SaveAITextMessage(
-			chatMsg.UserID,
+			userID, // 修复：使用传入的userID
 			chatMsg.RoleID,
 			responseText,
 		); err != nil {
 			log.Printf("保存AI文本消息失败: %v", err)
 		}
+		clearUserCache(userID)
 		return
 	}
 
-	// 保存AI语音消息到数据库（只在这里保存一次）
+	// 保存AI语音消息到数据库 - 使用传入的userID而不是chatMsg.UserID
 	if err := database.SaveAIVoiceMessage(
-		chatMsg.UserID,
+		userID, // 修复：使用传入的userID
 		chatMsg.RoleID,
 		responseText,
 		voiceURL,
 	); err != nil {
 		log.Printf("保存AI语音消息失败: %v", err)
 	}
+	clearUserCache(userID)
 
 	// 发送语音回复给前端（返回语音URL而不是base64数据）
 	if err := conn.WriteJSON(ChatResponse{
@@ -347,30 +391,6 @@ func processMessage(userID, roleID uint, message string, messageType string, voi
 	userResponse, err := callQiniuLLM(chatMessages)
 	if err != nil {
 		return "", fmt.Errorf("调用大模型获取回复失败: %w", err)
-	}
-
-	// 保存用户消息（不保存AI回复）
-	if err := database.SaveUserMessage(
-		userID,
-		roleID,
-		message,
-		messageType,
-		voiceURL,
-	); err != nil {
-		log.Printf("保存用户消息失败: %v", err)
-	}
-
-	// 第二步：生成摘要
-	summaryMessages := buildSummaryMessages(role, history, message, userResponse, existingSummary)
-	newSummary, err := callQiniuLLM(summaryMessages)
-	if err != nil {
-		// 如果摘要生成失败，使用简单摘要
-		newSummary = generateSimpleSummary(message, userResponse)
-	}
-
-	// 清理并保存摘要
-	if err := updateCompressedHistory(userID, roleID, cleanInvalidUTF8(newSummary)); err != nil {
-		log.Printf("更新压缩历史失败: %v", err)
 	}
 
 	return userResponse, nil
@@ -575,4 +595,10 @@ func sendError(conn *websocket.Conn, message string) {
 	if err := conn.WriteJSON(map[string]interface{}{"error": message}); err != nil {
 		log.Printf("发送错误消息失败: %v", err)
 	}
+}
+
+// 清除用户缓存（优化版）
+func clearUserCache(userID uint) {
+	historyService := HistoryService{}
+	historyService.ClearUserCache(userID)
 }
