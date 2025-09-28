@@ -587,7 +587,7 @@ export const VoiceCallProvider = ({ children }) => {
       
       if (data.url) {
         const audioUrl = `https://ai.mcell.top${data.url}`
-        
+        console.log('audioUrl:', callState)
         // 通过WebSocket发送
         const message = {
           role_id: callState.character?.ID || 1,
@@ -947,12 +947,12 @@ export const VoiceCallProvider = ({ children }) => {
     if (!character) {
       return
     }
-
+    console.log(character, 'character')
     // 检查录音器状态
     const hasPermission = await requestMicrophonePermission()
     if (!hasPermission) return
 
-    setCallState(prev => ({
+   await setCallState(prev => ({
       ...prev,
       visible: true,
       character,
@@ -978,7 +978,7 @@ export const VoiceCallProvider = ({ children }) => {
 
     // 连接WebSocket
     try {
-      setCallState(prev => ({
+      await  setCallState(prev => ({
         ...prev,
         callType: CALL_STATES.CONNECTING
       }))

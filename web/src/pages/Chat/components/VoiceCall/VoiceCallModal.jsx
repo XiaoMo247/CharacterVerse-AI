@@ -3,6 +3,7 @@ import { Modal, Button, Avatar, Typography } from 'antd'
 import { PhoneOutlined, AudioOutlined, AudioMutedOutlined } from '@ant-design/icons'
 import WaveformBars from '../wave/WaveformBars'
 import './VoiceCallModal.css'
+import LazyAvatar from '../../../../components/LazyAvatar'
 
 const { Text, Title } = Typography
 
@@ -74,13 +75,13 @@ const formatDuration = (seconds) => {
           {/* 角色头像 */}
           <div className="character-avatar-container">
             <div className="avatar-ring pulsing">
-              <Avatar 
-                size={120} 
-                className="character-avatar"
-                style={{ fontSize: '3rem' }}
+              <LazyAvatar 
+              size={120} 
+              style={{ fontSize: '3rem' }}
+              src={character?.avatar_url?.startsWith('http') ? character?.avatar_url : null}
               >
-                {character?.avatar || '🤖'}
-              </Avatar>
+              {character?.avatar_url?.startsWith('http') ? '' : '🤖'}
+              </LazyAvatar >
             </div>
           </div>
 

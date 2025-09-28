@@ -69,7 +69,7 @@ const Chat = () => {
         const roleMap = new Map()
         res.forEach(message => {
           if (message.role && !roleMap.has(message.role.ID)) {
-            if(message.message_type !== 'voice_call' && message.role.name){
+            if(message.role.name){
                 roleMap.set(message.role.ID, {
                   ID: message.role.ID,
                   name: message.role.name || `角色${message.role.ID}`,

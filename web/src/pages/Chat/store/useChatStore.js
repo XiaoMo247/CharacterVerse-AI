@@ -58,36 +58,35 @@ const useChatStore = create((set, get) => ({
   setCharacters: (characters) => set({ characters }),
 
   // 从历史消息中提取并设置角色列表
-  setCharactersFromHistory: (historyData) => {
-    if (!Array.isArray(historyData)) return
+  // setCharactersFromHistory: (historyData) => {
+  //   if (!Array.isArray(historyData)) return
 
-    // 提取唯一的角色信息
-    const roleMap = new Map()
-    
-    historyData.forEach(message => {
-      if (message.role && message.role.ID) {
-        const role = message.role
-        if (!roleMap.has(role.ID)) {
-          const chatCharacter = {
-            ID: role.ID,
-            name: role.name || `角色${role.ID}`,
-            avatar_url: role.avatar_url || '',
-            tags: [
-              role.gender && (role.gender === 'male' ? '男性' : role.gender === 'female' ? '女性' : role.gender),
-              role.age && `${role.age}岁`,
-            ].filter(Boolean),
-            online: true
-          }
-          roleMap.set(role.ID, chatCharacter)
-        }
-      }
-    })
+  //   // 提取唯一的角色信息
+  //   const roleMap = new Map()
+  //   console.log(historyData,'historyData')
+  //   historyData.forEach(message => {
+  //     if (message.role && message.role.ID) {
+  //       const role = message.role
+  //       if (!roleMap.has(role.ID)) {
+  //         const chatCharacter = {
+  //           ID: role.ID,
+  //           name: role.name || `角色${role.ID}`,
+  //           avatar_url: role.avatar_url || '',
+  //           tags: [
+  //             role.gender && (role.gender === 'male' ? '男性' : role.gender === 'female' ? '女性' : role.gender),
+  //             role.age && `${role.age}岁`,
+  //           ].filter(Boolean),
+  //           online: true
+  //         }
+  //         roleMap.set(role.ID, chatCharacter)
+  //       }
+  //     }
+  //   })
 
-    const characters = Array.from(roleMap.values())
-    console.log('setCharactersFromHistory:', characters)
-    set({ characters })
-    return characters
-  },
+  //   const characters = Array.from(roleMap.values())
+  //   set({ characters })
+  //   return characters
+  // },
 
   // 处理待处理的角色
   processPendingCharacter: () => {
