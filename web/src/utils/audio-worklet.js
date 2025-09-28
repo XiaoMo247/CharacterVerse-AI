@@ -633,7 +633,6 @@ class AudioWorkletRecorder {
   startAnalysis() {
     if (!this.analyserNode) return
     
-    console.log('📊 开始音频分析')
     this.analysisRunning = true
     
     const analyze = () => {
@@ -668,7 +667,6 @@ class AudioWorkletRecorder {
    * 停止音频分析
    */
   stopAnalysis() {
-    console.log('📊 停止音频分析')
     this.analysisRunning = false
   }
 
@@ -721,7 +719,7 @@ class AudioWorkletRecorder {
       const devices = await navigator.mediaDevices.enumerateDevices()
       return devices.filter(device => device.kind === 'audioinput')
     } catch (error) {
-      console.error('获取音频设备失败:', error)
+      console.error('获取音频设备失败')
       return []
     }
   }
@@ -809,7 +807,6 @@ class AudioWorkletRecorder {
    * 错误处理
    */
   handleError(message, error) {
-    console.error(message, error)
     if (this.onError) {
       this.onError(new Error(`${message}: ${error.message || error}`))
     }

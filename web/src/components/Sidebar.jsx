@@ -37,8 +37,8 @@ const Sidebar = () => {
       {/* 应用标题 */}
       <div className="sidebar-header">
         <div className="app-logo">
-          <span className="logo-icon">🤖</span>
-          {!collapsed && <h2 className="app-title">CharacterVerse</h2>}
+          <span className="logo-icon"></span>
+          {!collapsed && <h2 className="app-title">AI模拟宇宙</h2>}
         </div>
       </div>
 

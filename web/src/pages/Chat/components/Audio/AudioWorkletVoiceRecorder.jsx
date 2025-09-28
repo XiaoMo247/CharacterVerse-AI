@@ -58,14 +58,9 @@ const AudioWorkletVoiceRecorder = ({
   // 初始化录音器
   const initializeRecorder = useCallback(async () => {
     try {
-      console.log('🔧 开始初始化录音器...')
-      
       if (recorderRef.current) {
-        console.log('🧹 清理现有录音器...')
         recorderRef.current.cleanup()
       }
-
-      console.log('📦 创建 AudioWorkletRecorder 实例...')
 
       const recorder = new AudioWorkletRecorder({
         sampleRate: 44100,
@@ -73,7 +68,6 @@ const AudioWorkletVoiceRecorder = ({
         bufferSize: 2048,
         enableAnalysis: true,
         onVolumeChange: (vol) => {
-          console.log('🔊 音量变化:', vol)
           setVolume(vol)
         },
         onFrequencyData: (data) => {
@@ -85,27 +79,22 @@ const AudioWorkletVoiceRecorder = ({
           }
         },
         onError: (err) => {
-          console.error('❌ AudioWorkletRecorder 错误:', err)
           setError(err.message || err.toString())
         },
         onStateChange: (state, info) => {
-          console.log('🔄 录音器状态变化:', state, info)
+          // 状态变化处理
         }
       })
 
-      console.log('🚀 开始初始化录音器...')
       const success = await recorder.initialize()
-      console.log('📊 初始化结果:', success)
       if (success) {
         recorderRef.current = recorder
         setIsInitialized(true)
         setError(null)
-        console.log('✅ AudioWorkletRecorder 初始化成功')
       } else {
         throw new Error('AudioWorkletRecorder 初始化失败')
       }
     } catch (err) {
-      console.error('❌ 初始化录音器失败:', err)
       setError(err.message || err.toString())
       setIsInitialized(false)
     }
@@ -125,7 +114,6 @@ const AudioWorkletVoiceRecorder = ({
       
       // 检查是否达到最大时长
       if (elapsed >= maxDuration) {
-        console.log('⏰ 达到最大录音时长，自动停止')
         // 这里不能直接调用 stopRecording，会造成循环依赖
         // 通过 state 来触发停止
         stopRecording()
@@ -146,7 +134,6 @@ const AudioWorkletVoiceRecorder = ({
     try {
       // 检查录音器是否已初始化，如果没有则先初始化
       if (!recorderRef.current) {
-        console.log('⚠️ 录音器未初始化，开始初始化...')
         await initializeRecorder()
         
         // 再次检查初始化是否成功（直接检查 recorderRef，不依赖状态）
@@ -154,9 +141,6 @@ const AudioWorkletVoiceRecorder = ({
           throw new Error('录音器初始化失败，请检查麦克风权限')
         }
       }
-
-      console.log('🎬 场景：开始录音')
-      console.log('🔴 开始录音...')
       await recorderRef.current.startRecording()
       
       setIsRecording(true)
@@ -173,9 +157,7 @@ const AudioWorkletVoiceRecorder = ({
       startTimer()
       
       onRecordingStart()
-      console.log('✅ 录音已开始')
     } catch (err) {
-      console.error('❌ 开始录音失败:', err)
       setError(err.message || err.toString())
     }
   }, [isInitialized, initializeRecorder, onRecordingStart, startTimer])
@@ -183,7 +165,6 @@ const AudioWorkletVoiceRecorder = ({
   // 组件显示时自动初始化录音器
   useEffect(() => {
     if (visible && !isInitialized && !recorderRef.current) {
-      console.log('🔧 组件显示，开始初始化录音器...')
       initializeRecorder()
     }
   }, [visible, isInitialized, initializeRecorder])
@@ -191,7 +172,6 @@ const AudioWorkletVoiceRecorder = ({
   // 自动开始录音 - 只在组件首次显示且需要开始录音时触发
   useEffect(() => {
     if (start && visible && isInitialized && !isRecording && !hasStartedRecording) {
-        console.log('🎯 自动开始录音条件满足，开始录音...')
         startRecording()
     }
   }, [start, visible, isInitialized, isRecording, hasStartedRecording, startRecording])
@@ -199,8 +179,6 @@ const AudioWorkletVoiceRecorder = ({
   // 暂停录音
   const pauseRecording = useCallback(() => {
     if (recorderRef.current && isRecording && !isPaused) {
-      console.log('🎬 场景：暂停录音')
-      console.log('⏸️ 暂停录音')
       recorderRef.current.pauseRecording()
       setIsPaused(true)
       
@@ -212,7 +190,6 @@ const AudioWorkletVoiceRecorder = ({
   // 恢复录音
   const resumeRecording = useCallback(() => {
     if (recorderRef.current && isRecording && isPaused) {
-      console.log('▶️ 恢复录音')
       recorderRef.current.resumeRecording()
       setIsPaused(false)
       
@@ -226,13 +203,10 @@ const AudioWorkletVoiceRecorder = ({
   // 停止录音并关闭 Modal
   const stopRecording = useCallback(async () => {
     if (!recorderRef.current || !isRecording) {
-      console.warn('⚠️ 录音器未初始化或未在录音状态')
       return
     }
 
     try {
-      console.log('⏹️ 停止录音...')
-      
       // 场景处理：
       // 1. 直接录音 → 完成 ✅
       // 2. 录音 → 暂停 → 完成 ✅
@@ -242,22 +216,18 @@ const AudioWorkletVoiceRecorder = ({
       
       // 如果当前是暂停状态，先恢复录音再停止
       if (isPaused) {
-        console.log('📝 录音处于暂停状态，先恢复再停止')
         await recorderRef.current.resumeRecording()
         // 给录音器一点时间恢复状态
         await new Promise(resolve => setTimeout(resolve, 100))
       }
       
       // 停止录音器并获取录音数据
-      console.log('🎵 获取录音数据...')
       const audioBlob = await recorderRef.current.stopRecording()
       
       // 验证录音数据
       if (!audioBlob || !(audioBlob instanceof Blob) || audioBlob.size === 0) {
         throw new Error('录音数据无效或为空')
       }
-      
-      console.log('✅ 录音完成，数据大小:', audioBlob.size, 'bytes')
       
       // 更新状态
       setRecordedBlob(audioBlob)
@@ -270,7 +240,6 @@ const AudioWorkletVoiceRecorder = ({
       // 关闭 Modal
       onClose()
     } catch (err) {
-      console.error('❌ 停止录音失败:', err)
       setError(err.message || err.toString())
       
       // 即使出错也要清理状态
@@ -280,8 +249,6 @@ const AudioWorkletVoiceRecorder = ({
 
   // 取消录音并关闭 Modal
   const cancelRecording = useCallback(async() => {
-    console.log('❌ 取消录音...')
-    
     // 停止计时器
     stopTimer()
     
@@ -292,8 +259,6 @@ const AudioWorkletVoiceRecorder = ({
     
     if (recorderRef.current && isRecording) {
       try {
-        console.log('🛑 取消录音，停止录音器但不保存数据...')
-        
         // 停止音频分析
         if (recorderRef.current.stopAnalysis) {
           recorderRef.current.stopAnalysis()
@@ -308,10 +273,8 @@ const AudioWorkletVoiceRecorder = ({
         recorderRef.current.isRecording = false
         recorderRef.current.isPaused = false
         recorderRef.current.recordedChunks = []
-        
-        console.log('✅ 录音器已停止，状态已重置，录音器保持可用')
       } catch (err) {
-        console.error('❌ 取消录音时停止录音器失败:', err)
+        // 取消录音时的错误处理
       }
     }
     
@@ -323,8 +286,6 @@ const AudioWorkletVoiceRecorder = ({
     
     // 关闭 Modal
     onClose()
-    
-    console.log('✅ 录音已取消')
   }, [isRecording, onRecordingCancel, onClose, stopTimer, resetRecordingState])
 
   // 格式化时间
@@ -344,7 +305,6 @@ const AudioWorkletVoiceRecorder = ({
       cancelRecording()
     } else {
       // 未录音时关闭，直接关闭Modal
-      console.log('📝 未录音状态下关闭Modal')
       onClose()
     }
   }, [isRecording, cancelRecording, onClose])
@@ -394,8 +354,6 @@ const AudioWorkletVoiceRecorder = ({
                 type="primary"
                 size="large"
                 onClick={() => {
-                  console.log('🎯 点击开始录音按钮')
-                  console.log('📊 当前状态:', { isInitialized, isRecording, recordedBlob })
                   startRecording()
                 }}
                 disabled={!isInitialized}

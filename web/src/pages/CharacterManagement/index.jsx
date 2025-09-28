@@ -62,7 +62,6 @@ const CharacterManagement = () => {
       
       if (response && response.data) {
         const { list, total, pages, has_more } = response.data
-        console.log('list', list)
         setCharacters(list || [])
         setPagination({
           current: page,
@@ -86,7 +85,6 @@ const CharacterManagement = () => {
         setVoiceTypes(response)
       }
     } catch (error) {
-      console.error('获取声音类型失败:', error)
       message.error('获取声音类型失败')
     }
   }
@@ -145,7 +143,6 @@ const CharacterManagement = () => {
             message.error('角色删除失败')
           }
         } catch (error) {
-          console.error('删除角色失败:', error)
           message.error('角色删除失败')
         }
       }
@@ -195,7 +192,6 @@ const CharacterManagement = () => {
           message.error('角色创建失败')
         }
       } catch (error) {
-        console.error('角色创建失败:', error)
         message.error('角色创建失败')
       }
     }

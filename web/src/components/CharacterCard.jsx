@@ -1,6 +1,7 @@
 import { Card, Avatar, Button, Tag, Popconfirm } from 'antd'
 import { DeleteOutlined, MessageOutlined, EditOutlined, StarOutlined, StarFilled } from '@ant-design/icons'
 import './CharacterCard.css'
+import LazyAvatar from './LazyAvatar'
 
 const { Meta } = Card
 
@@ -76,14 +77,17 @@ const CharacterCard = ({
       hoverable
       {...props}
     >
+
       <Meta
         avatar={
-          <Avatar size={48} 
+           <LazyAvatar 
+            size={48} 
             style={{ fontSize: '1.5rem' }}
             src={character.avatar_url?.startsWith('http') ? character.avatar_url : null}
-          >
+            >
             {character.avatar_url?.startsWith('http') ? '' : '🤖'}
-          </Avatar>
+            </LazyAvatar >
+          
         }
         title={character.name}
         description={

@@ -65,7 +65,6 @@ const VoiceBubble = ({
     }
 
     const handleError = (e) => {
-      console.error('音频播放错误:', e)
       setError('音频播放失败')
       setIsPlaying(false)
       setIsLoading(false)
@@ -106,7 +105,6 @@ const VoiceBubble = ({
         onPlayStart()
       }
     } catch (err) {
-      console.error('播放控制失败:', err)
       setError('播放失败')
       setIsPlaying(false)
       onPlayError(err)

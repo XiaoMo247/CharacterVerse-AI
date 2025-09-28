@@ -22,6 +22,8 @@ import {
   PhoneOutlined
 } from '@ant-design/icons'
 import PageContainer from '../../components/PageContainer'
+import LazyAvatar from '../../components/LazyAvatar'
+import { preloadAvatar } from '../../utils/avatarCache'
 import StreamingChat from '../../utils/webSocket'
 import './Chat.css'
 import  ChatArea  from './components/ChatArea'
@@ -88,7 +90,7 @@ const Chat = () => {
         await setCharacters(characters)
       }
     } catch (error) {
-      console.error('获取历史记录失败:', error)
+      // 获取历史记录失败
     }
   }
 
@@ -103,7 +105,6 @@ const Chat = () => {
             if (processedCharacter) {
               // 清空之前的消息，开始新的对话
               setMessages([])
-              console.log('当前角色列表:', characters)
             }
         },100)
 
@@ -111,9 +112,14 @@ const Chat = () => {
     init()
   }, [])
 
-  // 监听角色列表变化
+  // 监听角色列表变化，预加载所有头像
   useEffect(() => {
-    console.log('角色列表更新:', characters)
+    // 预加载所有角色的头像
+    characters.forEach(character => {
+      if (character.avatar_url && character.avatar_url.startsWith('http')) {
+        preloadAvatar(character.avatar_url).catch(() => {})
+      }
+    })
   }, [characters])
 
   useEffect(() => {
@@ -134,7 +140,7 @@ const Chat = () => {
       streamingChatRef.current = new StreamingChat({
         wsUrl: 'ws://localhost:8080/api/ws/chat',
         onConnected: () => {
-          console.log(`WebSocket连接成功，当前角色: ${selectedCharacter.name}`)
+          // WebSocket连接成功
         },
         // onDisconnected: () => {
         //   setIsTyping(false)
@@ -169,7 +175,6 @@ const Chat = () => {
           setIsTyping(false)
           setStreamingMessage('')
           // message.error(`连接错误: ${error.message}`)
-          console.error('WebSocket错误:', error)
         }
       })
 
@@ -189,6 +194,11 @@ const Chat = () => {
   const handleCharacterSelect = (character) => {
     selectCharacter(character)
     setMessages([])
+    
+    // 预加载新选择角色的头像
+    if (character.avatar_url && character.avatar_url.startsWith('http')) {
+      preloadAvatar(character.avatar_url).catch(() => {})
+    }
   }
 
    const sendMessageToAI = async (message) => {
@@ -294,7 +304,6 @@ const Chat = () => {
   const Vocie = () =>{
     const { startCall , callState} = useVoiceCall()
     useEffect(() => {
-      console.log(starCalls)
       if(starCalls){
          startCall(selectedCharacter)
       }
@@ -348,13 +357,10 @@ const Chat = () => {
                       <List.Item.Meta
                         avatar={
                           <div style={{ padding: '1rem'}}>
-                            <Avatar 
-                            size={48} 
-                            style={{ fontSize: '1.5rem' }}
-                            src={character.avatar_url?character.avatar_url:null}
-                            >
-                             {character.avatar_url?.startsWith('http') ? '' : '🤖'}
-                            </Avatar>
+                            <LazyAvatar 
+                              size={48} 
+                              src={character.avatar_url}
+                            />
                           </div>
                         }
                         title={
@@ -392,11 +398,10 @@ const Chat = () => {
                   {/* 聊天头部 */}
                   <div className="chat-header">
                     <Space>
-                      <Avatar size={40} style={{ fontSize: '1.25rem' }}
-                        src={selectedCharacter.avatar_url?selectedCharacter.avatar_url:null}
-                      >
-                        {selectedCharacter.avatar_url?.startsWith('http') ? '' : '🤖'}
-                      </Avatar>
+                      <LazyAvatar 
+                        size={40} 
+                        src={selectedCharacter.avatar_url}
+                      />
                       <div>
                         <Title level={5} style={{ margin: 0 }}>
                           {selectedCharacter.name}

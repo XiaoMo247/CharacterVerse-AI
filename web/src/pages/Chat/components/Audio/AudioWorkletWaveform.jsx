@@ -32,7 +32,6 @@ const AudioWorkletWaveform = ({
   const updateWaveformFromFrequency = useCallback((frequencyArray) => {
     if (!frequencyArray || frequencyArray.length === 0) return
 
-    console.log('🎵 更新波形数据，频谱长度:', frequencyArray.length)
 
     const newWaveformData = new Array(barCount).fill(0)
     const centerIndex = Math.floor(barCount / 2)
@@ -44,7 +43,6 @@ const AudioWorkletWaveform = ({
     const totalEnergy = usefulFreqData.reduce((sum, val) => sum + val, 0) / usefulFreqData.length
     const normalizedEnergy = Math.min(totalEnergy / 128, 1) // 归一化到0-1
     
-    console.log('🔊 音频能量:', normalizedEnergy.toFixed(3), '中心索引:', centerIndex)
     
     // 生成从中间向两边的波形数据
     for (let i = 0; i < barCount; i++) {
@@ -77,14 +75,12 @@ const AudioWorkletWaveform = ({
       newWaveformData[i] = Math.max(baseAmplitude, 0.02)
     }
     
-    console.log('🎯 波形数据分布:', newWaveformData.map(v => v.toFixed(2)))
     setWaveformData(newWaveformData)
   }, [barCount])
 
   // 监听外部传入的频域数据
   useEffect(() => {
     if (frequencyData && Array.isArray(frequencyData)) {
-      console.log('📊 接收到外部频域数据:', frequencyData.length)
       updateWaveformFromFrequency(frequencyData)
     }
   }, [frequencyData, updateWaveformFromFrequency])
@@ -92,7 +88,6 @@ const AudioWorkletWaveform = ({
   // 监听外部传入的音量数据
   useEffect(() => {
     if (typeof volume === 'number') {
-      console.log('🔊 接收到外部音量数据:', volume)
       setCurrentVolume(volume)
       if (onVolumeChange) onVolumeChange(volume)
     }
@@ -136,11 +131,9 @@ const AudioWorkletWaveform = ({
     if (isRecording) {
       // 如果没有外部数据，使用模拟模式
       if (!frequencyData) {
-        console.log('🎭 启动模拟波形模式')
         startSimulatedMode()
       }
     } else {
-      console.log('⏹️ 停止波形显示')
       stopSimulatedMode()
     }
   }, [isRecording, frequencyData])
