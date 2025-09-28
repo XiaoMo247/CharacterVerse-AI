@@ -2,21 +2,16 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { 
   Avatar, 
   Button, 
-  Input, 
-  Space, 
   Typography, 
-  Empty ,
-  Card,
   Spin,
 } from 'antd'
 import { 
   UserOutlined, 
-  RobotOutlined, 
-  SendOutlined,
-  DeleteOutlined,
+  PhoneOutlined 
 } from '@ant-design/icons'
 import VoiceBubble from '../VoiceBubble'
 import { getroleHistory } from '../../server/chatService'
+import { formatDuration } from '../../../../utils/index'
 
 const { Text } = Typography
 
@@ -27,6 +22,7 @@ const ChatArea = ({
   streamingMessage = '',
   className = '',
   messagesEndRef,
+  setStarCalls
 } = {}) => {
   const [historyMessages, setHistoryMessages] = useState([])
   const [visibleMessages, setVisibleMessages] = useState([])
@@ -125,7 +121,7 @@ const ChatArea = ({
   }, [visibleMessages])
 
   // 合并历史消息和当前会话消息
-  const allMessages = [...visibleMessages, ...messages]
+  const  allMessages = [...visibleMessages, ...messages]
   
   return (
     <>
@@ -135,7 +131,7 @@ const ChatArea = ({
         ref={containerRef}
         onScroll={handleScroll}
         style={{ 
-          maxHeight: '500px', 
+          maxHeight: '50rem', 
           overflowY: 'auto',
           padding: '1rem'
         }}
@@ -200,6 +196,20 @@ const ChatArea = ({
                   maxWidth={250}
                   minWidth={100}
                 />
+              )}
+              {/* 语音通话气泡 */}
+              {message.type === 'voice_call' && (
+                <div onClick={()=>{setStarCalls(true)}}  className='voice-call'>
+                  <div className={`message-bubble ${message.role}`}>
+                     <PhoneOutlined />
+                     <span style={{ marginLeft: `0.5rem`}}>
+                        {formatDuration(message?.message)}
+                     </span>
+                  </div>
+                  <div className={`message-timestamp ${message.role}`}>
+                    {message.timestamp}
+                  </div>
+                </div>
               )}
             </div>
           </div>

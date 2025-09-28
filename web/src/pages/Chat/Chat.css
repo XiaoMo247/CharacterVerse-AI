@@ -418,3 +418,7 @@
 [data-theme="dark"] .streaming-cursor {
   color: var(--primary-light);
 }
+
+.voice-call:hover{
+  cursor: pointer;
+}

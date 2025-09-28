@@ -43,7 +43,8 @@ const Chat = () => {
   const streamingChatRef = useRef(null)
   const [loading, setLoading] = useState([])
   const [isRecording, setIsRecording] = useState(false)
-  const [Recordings, setRecordings] = useState([])
+  const [starCalls, setStarCalls] = useState(false)
+  const [callTime, setCallTime] = useState(0)
 
   // 使用 ChatStore
   const { 
@@ -256,9 +257,6 @@ const Chat = () => {
     }
   }
 
-  // const onlineCharacters = characters.filter(char => char.online)
-  // const totalMessages = messages.length
-
     // 处理录音完成
   const handleRecordingComplete = (audioBlob, duration) => {
     if(audioBlob){
@@ -278,8 +276,39 @@ const Chat = () => {
     }
   }
 
+  useEffect(() => {
+    if(callTime !== 0 ){
+        const userMessage = {
+        role: 'user',
+        message: callTime,
+        role_id: selectedCharacter.ID,
+        timestamp: new Date().toLocaleTimeString(),
+        type: 'voice_call',
+      }
+      // 添加用户消息到列表
+      setMessages(prev => [...prev, userMessage])
+      setCallTime(0)
+    }
+  },[callTime])
+
   const Vocie = () =>{
-    const { startCall} = useVoiceCall()
+    const { startCall , callState} = useVoiceCall()
+    useEffect(() => {
+      console.log(starCalls)
+      if(starCalls){
+         startCall(selectedCharacter)
+      }
+      setStarCalls(false)
+    },[starCalls])
+
+    useEffect(() => {
+      if(callState. callType === "ending"){
+        if(callState.duration){
+          setCallTime(callState.duration)
+        }
+      }
+    },[callState.callType])
+    
     
     return (
           <Button
@@ -401,6 +430,7 @@ const Chat = () => {
                     setInputValue={setInputValue}
                     handleKeyPress={handleKeyPress}
                     handleSendMessage={handleSendMessage}
+                    setStarCalls={setStarCalls}
                   /> 
                   <AudioWorkletVoiceRecorder
                     onRecordingComplete={handleRecordingComplete}

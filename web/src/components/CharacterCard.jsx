@@ -23,6 +23,7 @@ const CharacterCard = ({
         icon={character.favorited ? <StarFilled style={{ color: '#faad14' }} /> : <StarOutlined />}
         onClick={() => onToggleFavorite?.(character.id)}
         size="middle"
+        className='card-btn'
       />
     ),
     // TODO: 添加编辑按钮
@@ -33,6 +34,7 @@ const CharacterCard = ({
         icon={<EditOutlined />}
         onClick={() => onEdit?.(character)}
         size="middle"
+        className='card-btn'
       />
     ),
     // TODO: 添加聊天按钮
@@ -43,6 +45,7 @@ const CharacterCard = ({
         icon={<MessageOutlined />}
         onClick={() => onChat?.(character)}
         size="middle"
+        className='card-btn'
       >
       </Button>
     ),
@@ -60,6 +63,7 @@ const CharacterCard = ({
           danger
           icon={<DeleteOutlined />}
           size="middle"
+          className='card-btn'
         />
       </Popconfirm>
     )

@@ -57,8 +57,6 @@ export const VoiceCallProvider = ({ children }) => {
   const recordingChunksRef = useRef([])
   const lastVolumeRef = useRef(0)
   const vadRef = useRef(null)
-  const speechQualityRef = useRef(0) // 语音质量评分
-  const noiseDetectionRef = useRef(0) // 噪音检测计数
   const speechStartTimeRef = useRef(null) // 语音开始时间
   const isSpeakingRef = useRef(false) // 当前语音状态的ref，用于回调中的实时状态跟踪
   
@@ -1008,7 +1006,6 @@ export const VoiceCallProvider = ({ children }) => {
   // 发起通话
   const startCall = async (character) => {
     if (!character) {
-      message.error('请选择通话角色')
       return
     }
 

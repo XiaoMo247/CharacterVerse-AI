@@ -8,7 +8,7 @@ import {
   SunOutlined,
   MoonOutlined
 } from '@ant-design/icons'
-import { PageContainer, FeatureCard, StatCard, CharacterCard } from '../../components'
+import { PageContainer, CharacterCard } from '../../components'
 import useStore from '../../store/useStore'
 import { SearchBar } from './components'
 import useHomeStore from './store/useHomeStore'
