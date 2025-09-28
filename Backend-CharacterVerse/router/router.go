@@ -14,6 +14,11 @@ func RouterInit(r *gin.Engine) {
 		public.POST("/user/register", api.Register)
 		public.POST("/user/login", api.Login)
 		public.GET("/voiceTypes", api.GetAllVoiceTypes)
+		roleGroup := public.Group("/role")
+		{
+			roleGroup.GET("/tag", api.GetRolesByTag)
+			roleGroup.GET("/search", api.SearchRoles)
+		}
 	}
 
 	// 需要认证的路由
@@ -22,14 +27,11 @@ func RouterInit(r *gin.Engine) {
 	{
 		auth.GET("/ws/chat", api.ChatHandler)
 		auth.GET("/ws/voice_chat", api.VoiceChatHandler)
-
 		roleGroup := auth.Group("/role")
 		{
 			roleGroup.POST("/add", api.AddRole)
 			roleGroup.GET("/list", api.ListRoles)
 			roleGroup.GET("/user", api.GetRolesByUsername)
-			roleGroup.GET("/tag", api.GetRolesByTag)
-			roleGroup.GET("/search", api.SearchRoles)
 			roleGroup.DELETE("/:role_id", api.DeleteRole)
 			roleGroup.PUT("/:role_id", api.UpdateRole)
 		}
